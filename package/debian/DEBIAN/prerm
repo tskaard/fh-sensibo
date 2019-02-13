@@ -1,0 +1,3 @@
+#!/bin/bash
+systemctl stop sensibo.service
+systemctl disable sensibo.service

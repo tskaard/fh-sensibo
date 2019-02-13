@@ -1,0 +1,14 @@
+[Unit]
+Description=Sensibo Sky app
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/sensibo -c /etc/futurehome/sensibo/config.json
+User=sensibo
+WorkingDirectory=/var/lib/futurehome/sensibo
+Restart=always
+StandardOutput=null
+StandardError=null
+
+[Install]
+WantedBy=multi-user.target

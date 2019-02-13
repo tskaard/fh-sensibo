@@ -1,0 +1,8 @@
+Package: sensibo
+Version: 0.0.3
+Replaces: sensibo
+Section: non-free/misc
+Priority: optional
+Architecture: armhf
+Maintainer: Tor Erik Skårdal <skardal@me.com>
+Description: Sensibo sky app.
