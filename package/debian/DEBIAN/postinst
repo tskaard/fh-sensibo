@@ -52,6 +52,8 @@ configure_defaults()
         echo "Setting up logging dir"
         mkdir -m 755 -p /var/log/futurehome/sensibo
 		touch /var/log/futurehome/sensibo/sensibo.log
+		mkdir -m 755 -p /var/lib/futurehome/sensibo/data
+		touch /var/lib/futurehome/sensibo/data/state.log
     fi
 }
 

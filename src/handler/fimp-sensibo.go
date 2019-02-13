@@ -20,11 +20,11 @@ type FimpSensiboHandler struct {
 }
 
 // NewFimpSensiboHandler construct new handler
-func NewFimpSensiboHandler(transport *fimpgo.MqttTransport) *FimpSensiboHandler {
+func NewFimpSensiboHandler(transport *fimpgo.MqttTransport, stateFile string) *FimpSensiboHandler {
 	fc := &FimpSensiboHandler{inboundMsgCh: make(fimpgo.MessageCh, 5), mqt: transport}
 	fc.mqt.RegisterChannel("ch1", fc.inboundMsgCh)
 	fc.api = sensibo.NewSensibo("")
-	fc.db, _ = scribble.New("./", nil)
+	fc.db, _ = scribble.New(stateFile, nil)
 	fc.state = model.State{}
 	return fc
 }
@@ -94,12 +94,6 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 		}
 		for _, pod := range pods {
 			log.Debug(pod.ID)
-			// states, err := fc.api.GetAcStates(pod.ID)
-			// if err != nil {
-			// 	log.Error("Cannot get ac state")
-			// 	continue
-			// }
-			// log.Debug(states)
 			fc.SendInclusionReport(pod.ID, newMsg.Payload)
 			fc.state.Devices = append(fc.state.Devices, model.Device{ID: pod.ID})
 		}

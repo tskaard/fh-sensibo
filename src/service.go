@@ -67,7 +67,7 @@ func main() {
 	} else {
 		log.Info("--------------Connected----------------")
 	}
-	fimpHandler := handler.NewFimpSensiboHandler(mqtt)
+	fimpHandler := handler.NewFimpSensiboHandler(mqtt, configs.StateDir)
 	fimpHandler.Start()
 	log.Info("--------------Started handler----------")
 
