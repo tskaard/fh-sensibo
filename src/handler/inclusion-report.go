@@ -88,8 +88,7 @@ func buildFanCtrlService(addr string) fimptype.Service {
 	return fanCtrlService
 }
 
-// SendInclusionReport sends inc report over MQTT
-func (fc *FimpSensiboHandler) SendInclusionReport(addr string, oldMsg *fimpgo.FimpMessage) {
+func (fc *FimpSensiboHandler) sendInclusionReport(addr string, oldMsg *fimpgo.FimpMessage) {
 
 	tempSensorService := buildSensorService(addr, "sensor_temp", []string{"C"}, "temperature")
 	humidSensorService := buildSensorService(addr, "sensor_humid", []string{"%"}, "humidity")

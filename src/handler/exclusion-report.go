@@ -6,15 +6,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// SystemDisconnect resets the ad
-func (fc *FimpSensiboHandler) SystemDisconnect(msg *fimpgo.Message) {
+func (fc *FimpSensiboHandler) systemDisconnect(msg *fimpgo.Message) {
 	if !fc.state.Connected {
 		log.Error("Ad is not connected, no devices to exclude")
 		return
 	}
 	// TODO Change pod id yo use address from file
 	for _, device := range fc.state.Devices {
-		fc.SendExclusionReport(device.ID, msg.Payload)
+		fc.sendExclusionReport(device.ID, msg.Payload)
 	}
 	fc.state.Connected = false
 	fc.state.APIkey = ""
@@ -25,8 +24,7 @@ func (fc *FimpSensiboHandler) SystemDisconnect(msg *fimpgo.Message) {
 
 }
 
-// SendExclusionReport for device
-func (fc *FimpSensiboHandler) SendExclusionReport(addr string, oldMsg *fimpgo.FimpMessage) {
+func (fc *FimpSensiboHandler) sendExclusionReport(addr string, oldMsg *fimpgo.FimpMessage) {
 	exReport := fimptype.ThingExclusionReport{
 		Address: addr,
 	}

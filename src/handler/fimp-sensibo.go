@@ -2,6 +2,7 @@ package handler
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/futurehomeno/fimpgo"
 	scribble "github.com/nanobox-io/golang-scribble"
@@ -17,6 +18,7 @@ type FimpSensiboHandler struct {
 	api          *sensibo.Sensibo
 	db           *scribble.Driver
 	state        model.State
+	ticker       *time.Ticker
 }
 
 // NewFimpSensiboHandler construct new handler
@@ -49,6 +51,41 @@ func (fc *FimpSensiboHandler) Start() error {
 			}
 		}
 	}(fc.inboundMsgCh)
+	// Setting up ticker to poll information from cloud
+	fc.ticker = time.NewTicker(time.Second * 60)
+	go func() {
+		for range fc.ticker.C {
+			// Check if app is connected
+			// ADD timer from config
+			log.Debug("------- New tick -------")
+			if fc.state.Connected {
+				log.Debug("------- CONNECTED -------")
+				for _, pod := range fc.state.Devices {
+					measurements, err := fc.api.GetMeasurements(pod.ID)
+					if err != nil {
+						log.Error("Cannot get measurements from device")
+						break
+					}
+					temp := measurements[0].Temperature
+					fc.sendTemperatureMsg(pod.ID, temp, nil)
+					humid := measurements[0].Humidity
+					fc.sendHumidityMsg(pod.ID, humid, nil)
+
+					states, err := fc.api.GetAcStates(pod.ID)
+					if err != nil {
+						log.Error("Faild to get current acState: ", err)
+						break
+					}
+					state := states[0].AcState
+					fc.sendAcState(pod.ID, state, nil)
+				}
+				// Get measurements and acState from all units
+			} else {
+				log.Debug("------- NOT CONNECTED -------")
+				// Do nothing
+			}
+		}
+	}()
 	return errr
 }
 
@@ -57,15 +94,19 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 	switch newMsg.Payload.Type {
 	case "cmd.system.disconnect":
 		log.Debug("cmd.system.disconnect")
-		fc.SystemDisconnect(newMsg)
+		fc.systemDisconnect(newMsg)
 
 	case "cmd.system.get_connect_params":
 		log.Debug("cmd.system.get_connect_params")
 		// request api_key
 		val := map[string]string{
-			"security_key": "api_key",
-			"address":      "localhost",
-			"id":           "sensibo",
+			"address": "localhost",
+			"id":      "sensibo",
+		}
+		if fc.state.Connected {
+			val["security_key"] = fc.state.APIkey
+		} else {
+			val["security_key"] = "api_key"
 		}
 		msg := fimpgo.NewStrMapMessage("evt.system.connect_params_report", "sensibo", val, nil, nil, newMsg.Payload)
 		adr := fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sensibo", ResourceAddress: "1"}
@@ -76,6 +117,13 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 		// Do stuff to connect
 		log.Debug("cmd.system.connect")
 
+		// TODO check if connected
+		// Check if new api key is the same as the one stored
+		// handle it
+		if fc.state.Connected {
+			log.Error("App is already connected with system")
+			break
+		}
 		val, err := newMsg.Payload.GetStrMapValue()
 		if err != nil {
 			log.Error("Wrong payload type , expected StrMap")
@@ -85,21 +133,24 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			log.Error("Did not get a security_key")
 			break
 		}
+
 		fc.api.Key = val["security_key"]
-		fc.state.APIkey = val["security_key"]
-		// log.Debug(fc.api.Key)
 		pods, err := fc.api.GetPods()
 		if err != nil {
 			log.Error("Cannot get pods information from Sensibo - ", err)
+			fc.api.Key = ""
+			break
 		}
+		fc.state.APIkey = val["security_key"]
 		for _, pod := range pods {
 			log.Debug(pod.ID)
-			fc.SendInclusionReport(pod.ID, newMsg.Payload)
+			fc.sendInclusionReport(pod.ID, newMsg.Payload)
 			fc.state.Devices = append(fc.state.Devices, model.Device{ID: pod.ID})
 		}
 		fc.state.Connected = true
 		if err := fc.db.Write("data", "state", fc.state); err != nil {
 			log.Error("Did not manage to write to file: ", err)
+			break
 		}
 		log.Debug("System connected")
 
@@ -111,9 +162,9 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 		}
 		for _, device := range fc.state.Devices {
 			log.Debug(device.ID)
-			fc.SendInclusionReport(device.ID, newMsg.Payload)
+			fc.sendInclusionReport(device.ID, newMsg.Payload)
 		}
-		log.Debug("System synced")
+		log.Info("System synced")
 
 	case "cmd.setpoint.set":
 		if !(newMsg.Payload.Service == "thermostat") {
@@ -158,12 +209,7 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			break
 		}
 		log.Debug(acStateLog)
-		// returning setpoint event
-		value["temp"] = strconv.Itoa(tempSetpoint)
-		msg := fimpgo.NewStrMapMessage("evt.setpoint.report", "thermostat", value, nil, nil, newMsg.Payload)
-		adr, _ := fimpgo.NewAddressFromString("pt:j1/mt:evt/rt:dev/rn:sensibo/ad:1/sv:thermostat/ad:" + address)
-		fc.mqt.Publish(adr, msg)
-		log.Info("Thermostat setpoint changed")
+		fc.sendSetpointMsg(address, newAcState, newMsg.Payload)
 
 	case "cmd.setpoint.get_report":
 		if !(newMsg.Payload.Service == "thermostat") {
@@ -176,16 +222,8 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			log.Error("Faild to get current acState: ", err)
 			break
 		}
-		state := states[0]
-		val := make(map[string]string)
-		val["temp"] = strconv.Itoa(state.AcState.TargetTemperature)
-		val["type"] = state.AcState.Mode
-		if state.AcState.TemperatureUnit != "" {
-			val["unit"] = state.AcState.TemperatureUnit
-		}
-		msg := fimpgo.NewStrMapMessage("evt.setpoint.report", "thermostat", val, nil, nil, newMsg.Payload)
-		adr, _ := fimpgo.NewAddressFromString("pt:j1/mt:evt/rt:dev/rn:sensibo/ad:1/sv:thermostat/ad:" + address)
-		fc.mqt.Publish(adr, msg)
+		state := states[0].AcState
+		fc.sendSetpointMsg(address, state, newMsg.Payload)
 
 	case "cmd.mode.set":
 		// Get current ac state and change the mode before sending it back
@@ -221,9 +259,8 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 				break
 			}
 			log.Debug(acStateLog)
-			msg := fimpgo.NewStringMessage("evt.mode.report", "thermostat", newMode, nil, nil, newMsg.Payload)
-			adr, _ := fimpgo.NewAddressFromString("pt:j1/mt:evt/rt:dev/rn:sensibo/ad:1/sv:thermostat/ad:" + address)
-			fc.mqt.Publish(adr, msg)
+			fc.sendThermostatModeMsg(address, newMode, newMsg.Payload)
+
 		} else if newMsg.Payload.Service == "fan_ctrl" {
 			address := newMsg.Addr.ServiceAddress
 			newFanMode, err := newMsg.Payload.GetStringValue()
@@ -249,10 +286,7 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 				break
 			}
 			log.Debug(acStateLog)
-			msg := fimpgo.NewStringMessage("evt.mode.report", "fan_ctrl", newFanMode, nil, nil, newMsg.Payload)
-			adr, _ := fimpgo.NewAddressFromString("pt:j1/mt:evt/rt:dev/rn:sensibo/ad:1/sv:fan_ctrl/ad:" + address)
-			fc.mqt.Publish(adr, msg)
-
+			fc.sendFanCtrlMsg(address, newFanMode, newMsg.Payload)
 		} else {
 			log.Error("cmd.mode.set - Wrong service")
 			break
@@ -266,11 +300,8 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 				log.Error("Faild to get current acState: ", err)
 				break
 			}
-			state := states[0].AcState
-			mode := state.Mode
-			msg := fimpgo.NewStringMessage("evt.setpoint.report", "thermostat", mode, nil, nil, newMsg.Payload)
-			adr, _ := fimpgo.NewAddressFromString("pt:j1/mt:evt/rt:dev/rn:sensibo/ad:1/sv:thermostat/ad:" + address)
-			fc.mqt.Publish(adr, msg)
+			mode := states[0].AcState.Mode
+			fc.sendThermostatModeMsg(address, mode, newMsg.Payload)
 
 		} else if newMsg.Payload.Service == "fan_ctrl" {
 			address := newMsg.Addr.ServiceAddress
@@ -279,12 +310,8 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 				log.Error("Faild to get current acState: ", err)
 				break
 			}
-			state := states[0].AcState
-			fanMode := state.FanLevel
-			msg := fimpgo.NewStringMessage("evt.setpoint.report", "fan_ctrl", fanMode, nil, nil, newMsg.Payload)
-			adr, _ := fimpgo.NewAddressFromString("pt:j1/mt:evt/rt:dev/rn:sensibo/ad:1/sv:fan_ctrl/ad:" + address)
-			fc.mqt.Publish(adr, msg)
-
+			fanMode := states[0].AcState.FanLevel
+			fc.sendFanCtrlMsg(address, fanMode, newMsg.Payload)
 		} else {
 			log.Error("cmd.setpoint.get_report - Wrong service")
 			break
@@ -309,21 +336,11 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 		case "sensor_temp":
 			log.Debug("Getting temperature")
 			temp := measurements[0].Temperature
-			props := make(map[string]string)
-			props["unit"] = "C"
-			msg := fimpgo.NewMessage("evt.sensor.report", "sensor_temp", "float", temp, props, nil, newMsg.Payload)
-			adr, _ := fimpgo.NewAddressFromString("pt:j1/mt:evt/rt:dev/rn:sensibo/ad:1/sv:sensor_temp/ad:" + address)
-			fc.mqt.Publish(adr, msg)
-			log.Info("Temperature message sent")
+			fc.sendTemperatureMsg(address, temp, newMsg.Payload)
 		case "sensor_humid":
 			log.Debug("Getting humidity")
 			humid := measurements[0].Humidity
-			props := make(map[string]string)
-			props["unit"] = "%"
-			msg := fimpgo.NewMessage("evt.sensor.report", "sensor_humid", "float", humid, props, nil, newMsg.Payload)
-			adr, _ := fimpgo.NewAddressFromString("pt:j1/mt:evt/rt:dev/rn:sensibo/ad:1/sv:sensor_humid/ad:" + address)
-			fc.mqt.Publish(adr, msg)
-			log.Info("Humidity message sent")
+			fc.sendHumidityMsg(address, humid, newMsg.Payload)
 		}
 	}
 }
