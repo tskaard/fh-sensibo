@@ -10,4 +10,5 @@ type Configs struct {
 	LogLevel           string `json:"log_level"`
 	LogFormat          string `json:"log_format"`
 	StateDir           string `json:"state_dir"`
+	PollTimeSec        int    `json:"poll_time_sec"`
 }

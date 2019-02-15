@@ -68,7 +68,7 @@ func main() {
 		log.Info("--------------Connected----------------")
 	}
 	fimpHandler := handler.NewFimpSensiboHandler(mqtt, configs.StateDir)
-	fimpHandler.Start()
+	fimpHandler.Start(configs.PollTimeSec)
 	log.Info("--------------Started handler----------")
 
 	mqtt.Subscribe("pt:j1/mt:cmd/rt:ad/rn:sensibo/ad:1")

@@ -32,7 +32,7 @@ func NewFimpSensiboHandler(transport *fimpgo.MqttTransport, stateFile string) *F
 }
 
 // Start start handler
-func (fc *FimpSensiboHandler) Start() error {
+func (fc *FimpSensiboHandler) Start(pollTimeSec int) error {
 	if err := fc.db.Read("data", "state", &fc.state); err != nil {
 		log.Error("Error loading state from file: ", err)
 		fc.state.Connected = false
@@ -52,7 +52,7 @@ func (fc *FimpSensiboHandler) Start() error {
 		}
 	}(fc.inboundMsgCh)
 	// Setting up ticker to poll information from cloud
-	fc.ticker = time.NewTicker(time.Second * 60)
+	fc.ticker = time.NewTicker(time.Second * time.Duration(pollTimeSec))
 	go func() {
 		for range fc.ticker.C {
 			// Check if app is connected
