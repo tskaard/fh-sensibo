@@ -7,7 +7,7 @@ fh-sensibo is a Futurehome app that lets you connect your Sensibo Sky unit to Fu
 
 ## Build
 run: `make run`   
-build pkg for arm: `make deb-arm`
+build debian package for arm: `make deb-arm`
 
 ## Use
 How to connect and use from the Futurehome app
