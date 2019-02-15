@@ -1,11 +1,25 @@
-Thingsplex  service project generator . 
+# fh-sensibo
 
-To generate new service project run: `./generate-service.sh new_service_name`
+fh-sensibo is a Futurehome app that lets you connect your Sensibo Sky unit to Futurehome
+
+## Overview
+...
+
+## Build
+run: `make run`   
+build pkg for arm: `make deb-arm`
+
+## Use
+How to connect and use from the Futurehome app
+### connect
+connection parameter
+sensibo api key...
 
 
-The generator depends on:
-* python3
-* golang
-* docker , only if host is not debian linux and target is debian package . 
+### sync
+
+
+
+### inclusion report
 
 
