@@ -115,9 +115,6 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 		// Do stuff to connect
 		log.Debug("cmd.system.connect")
 
-		// TODO check if connected
-		// Check if new api key is the same as the one stored
-		// handle it
 		if fc.state.Connected {
 			log.Error("App is already connected with system")
 			break
@@ -139,13 +136,27 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			fc.api.Key = ""
 			break
 		}
-		fc.state.APIkey = val["security_key"]
-		fc.state.Pods = pods
+
+		//fc.state.Pods = pods
 		for _, pod := range pods {
 			log.Debug(pod.ID)
+			log.Debug(pod.ProductModel)
+			if pod.ProductModel != "skyv2" {
+				break
+			}
+			fc.state.Pods = append(fc.state.Pods, pod)
 			fc.sendInclusionReport(pod, newMsg.Payload)
 		}
-		fc.state.Connected = true
+		// TODO Check if state has any pods
+		// if not remove API key and set connected to false
+		if fc.state.Pods != nil {
+			fc.state.APIkey = val["security_key"]
+			fc.state.Connected = true
+		} else {
+			fc.state.APIkey = ""
+			fc.state.Connected = false
+		}
+
 		if err := fc.db.Write("data", "state", fc.state); err != nil {
 			log.Error("Did not manage to write to file: ", err)
 			break

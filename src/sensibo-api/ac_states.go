@@ -34,6 +34,7 @@ type AcStatesResult struct {
 	Result []AcStateLog `json:"result"`
 }
 
+// GetAcStates gets the AC state from a pod
 func (s *Sensibo) GetAcStates(deviceID string) ([]AcStateLog, error) {
 	data, err := s.get(fmt.Sprintf("pods/%v/acStates", deviceID), url.Values{})
 	if err != nil {

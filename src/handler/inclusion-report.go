@@ -109,8 +109,6 @@ func (fc *FimpSensiboHandler) sendInclusionReport(pod sensibo.Pod, oldMsg *fimpg
 		ProductId:      pod.ProductModel,
 		DeviceId:       pod.MacAddress,
 	}
-	// TODO productId should be the productModel from the pod
-	// DeviecID should be macAddress from pod
 
 	msg := fimpgo.NewMessage("evt.thing.inclusion_report", "sensibo", "object", incReort, nil, nil, oldMsg)
 	adr := fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sensibo", ResourceAddress: "1"}

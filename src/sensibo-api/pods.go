@@ -6,16 +6,56 @@ import (
 	"net/url"
 )
 
+type Temperatures struct {
+	C struct {
+		IsNative bool  `json:"isNative"`
+		Values   []int `json:"values"`
+	} `json:"C"`
+}
+
+type Modes struct {
+	Dry struct {
+		Swing        []string     `json:"swing"`
+		Temperatures Temperatures `json:"temperatures"`
+		FanLevels    []string     `json:"fanLevels"`
+	} `json:"dry"`
+	Auto struct {
+		Swing        []string     `json:"swing"`
+		Temperatures Temperatures `json:"temperatures"`
+		FanLevels    []string     `json:"fanLevels"`
+	} `json:"auto"`
+	Heat struct {
+		Swing        []string     `json:"swing"`
+		Temperatures Temperatures `json:"temperatures"`
+		FanLevels    []string     `json:"fanLevels"`
+	} `json:"heat"`
+	Fan struct {
+		Swing        []string     `json:"swing"`
+		Temperatures Temperatures `json:"temperatures"`
+		FanLevels    []string     `json:"fanLevels"`
+	} `json:"fan"`
+	Cool struct {
+		Swing        []string     `json:"swing"`
+		Temperatures Temperatures `json:"temperatures"`
+		FanLevels    []string     `json:"fanLevels"`
+	} `json:"cool"`
+}
+
+type RemoteCapabilities struct {
+	Modes Modes `json:"modes"`
+}
+
 type Room struct {
 	Name string `json:"name"`
 	Icon string `json:"icon"`
 }
 
 type Pod struct {
-	ID           string `json:"id"`
-	Room         Room   `json:"room"`
-	MacAddress   string `json:"macAddress"`
-	ProductModel string `json:"productModel"`
+	ID                 string             `json:"id"`
+	Room               Room               `json:"room"`
+	MacAddress         string             `json:"macAddress"`
+	ProductModel       string             `json:"productModel"`
+	RemoteCapabilities RemoteCapabilities `json:"remoteCapabilities"`
 }
 
 type PodResult struct {
@@ -26,7 +66,7 @@ type PodResult struct {
 // GetPods gets information on all pods on account
 func (s *Sensibo) GetPods() ([]Pod, error) {
 	values := url.Values{
-		"fields": []string{"id,room,productModel,macAddress"},
+		"fields": []string{"id,room,productModel,macAddress,remoteCapabilities"},
 	}
 	data, err := s.get("users/me/pods", values)
 	if err != nil {
