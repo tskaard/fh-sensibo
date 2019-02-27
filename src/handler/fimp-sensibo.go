@@ -142,8 +142,8 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 		fc.state.APIkey = val["security_key"]
 		for _, pod := range pods {
 			log.Debug(pod.ID)
-			fc.sendInclusionReport(pod.ID, newMsg.Payload)
-			fc.state.Devices = append(fc.state.Devices, model.Device{ID: pod.ID})
+			fc.sendInclusionReport(pod.ID, pod.Room.Name, newMsg.Payload)
+			fc.state.Devices = append(fc.state.Devices, model.Device{ID: pod.ID, Name: pod.Room.Name})
 		}
 		fc.state.Connected = true
 		if err := fc.db.Write("data", "state", fc.state); err != nil {
@@ -160,7 +160,7 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 		}
 		for _, device := range fc.state.Devices {
 			log.Debug(device.ID)
-			fc.sendInclusionReport(device.ID, newMsg.Payload)
+			fc.sendInclusionReport(device.ID, device.Name, newMsg.Payload)
 		}
 		log.Info("System synced")
 

@@ -88,7 +88,7 @@ func buildFanCtrlService(addr string) fimptype.Service {
 	return fanCtrlService
 }
 
-func (fc *FimpSensiboHandler) sendInclusionReport(addr string, oldMsg *fimpgo.FimpMessage) {
+func (fc *FimpSensiboHandler) sendInclusionReport(addr string, name string, oldMsg *fimpgo.FimpMessage) {
 
 	tempSensorService := buildSensorService(addr, "sensor_temp", []string{"C"}, "temperature")
 	humidSensorService := buildSensorService(addr, "sensor_humid", []string{"%"}, "humidity")
@@ -104,6 +104,7 @@ func (fc *FimpSensiboHandler) sendInclusionReport(addr string, oldMsg *fimpgo.Fi
 		ProductName:    "Sensibo Sky",
 		Groups:         []string{"ch_0"},
 		Services:       services,
+		Alias:          name,
 	}
 
 	msg := fimpgo.NewMessage("evt.thing.inclusion_report", "sensibo", "object", incReort, nil, nil, oldMsg)
