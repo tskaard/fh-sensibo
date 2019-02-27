@@ -57,9 +57,7 @@ func (fc *FimpSensiboHandler) Start(pollTimeSec int) error {
 		for range fc.ticker.C {
 			// Check if app is connected
 			// ADD timer from config
-			log.Debug("------- New tick -------")
 			if fc.state.Connected {
-				log.Debug("------- CONNECTED -------")
 				for _, pod := range fc.state.Devices {
 					measurements, err := fc.api.GetMeasurements(pod.ID)
 					if err != nil {

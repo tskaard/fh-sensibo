@@ -5,4 +5,5 @@ Section: non-free/misc
 Priority: optional
 Architecture: armhf
 Maintainer: Tor Erik Skårdal <skardal@me.com>
-Description: Sensibo sky app.
+Description: Connects Sensibo device to Futurehome.
+    The app uses Sensibo's REST API go change the AC state and get measurments from the device
