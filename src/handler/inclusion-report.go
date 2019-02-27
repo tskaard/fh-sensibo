@@ -4,6 +4,7 @@ import (
 	"github.com/futurehomeno/fimpgo"
 	"github.com/futurehomeno/fimpgo/fimptype"
 	log "github.com/sirupsen/logrus"
+	sensibo "github.com/tskaard/sensibo/sensibo-api"
 )
 
 func buildInterface(iType string, msgType string, valueType string, version string) fimptype.Interface {
@@ -88,24 +89,28 @@ func buildFanCtrlService(addr string) fimptype.Service {
 	return fanCtrlService
 }
 
-func (fc *FimpSensiboHandler) sendInclusionReport(addr string, name string, oldMsg *fimpgo.FimpMessage) {
+func (fc *FimpSensiboHandler) sendInclusionReport(pod sensibo.Pod, oldMsg *fimpgo.FimpMessage) {
 
-	tempSensorService := buildSensorService(addr, "sensor_temp", []string{"C"}, "temperature")
-	humidSensorService := buildSensorService(addr, "sensor_humid", []string{"%"}, "humidity")
-	thermostatService := buildThermostatService(addr)
-	fanCtrlService := buildFanCtrlService(addr)
+	tempSensorService := buildSensorService(pod.ID, "sensor_temp", []string{"C"}, "temperature")
+	humidSensorService := buildSensorService(pod.ID, "sensor_humid", []string{"%"}, "humidity")
+	thermostatService := buildThermostatService(pod.ID)
+	fanCtrlService := buildFanCtrlService(pod.ID)
 
 	services := []fimptype.Service{}
 	services = append(services, tempSensorService, humidSensorService, thermostatService, fanCtrlService)
 	incReort := fimptype.ThingInclusionReport{
-		Address:        addr,
+		Address:        pod.ID,
 		HwVersion:      "1",
 		CommTechnology: "http",
 		ProductName:    "Sensibo Sky",
 		Groups:         []string{"ch_0"},
 		Services:       services,
-		Alias:          name,
+		Alias:          pod.Room.Name,
+		ProductId:      pod.ProductModel,
+		DeviceId:       pod.MacAddress,
 	}
+	// TODO productId should be the productModel from the pod
+	// DeviecID should be macAddress from pod
 
 	msg := fimpgo.NewMessage("evt.thing.inclusion_report", "sensibo", "object", incReort, nil, nil, oldMsg)
 	adr := fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sensibo", ResourceAddress: "1"}

@@ -12,12 +12,12 @@ func (fc *FimpSensiboHandler) systemDisconnect(msg *fimpgo.Message) {
 		return
 	}
 	// TODO Change pod id yo use address from file
-	for _, device := range fc.state.Devices {
-		fc.sendExclusionReport(device.ID, msg.Payload)
+	for _, pod := range fc.state.Pods {
+		fc.sendExclusionReport(pod.ID, msg.Payload)
 	}
 	fc.state.Connected = false
 	fc.state.APIkey = ""
-	fc.state.Devices = nil
+	fc.state.Pods = nil
 	if err := fc.db.Write("data", "state", fc.state); err != nil {
 		log.Error("Did not manage to write to file: ", err)
 	}

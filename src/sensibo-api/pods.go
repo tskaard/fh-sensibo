@@ -12,8 +12,10 @@ type Room struct {
 }
 
 type Pod struct {
-	ID   string `json:"id"`
-	Room Room   `json:"room"`
+	ID           string `json:"id"`
+	Room         Room   `json:"room"`
+	MacAddress   string `json:"macAddress"`
+	ProductModel string `json:"productModel"`
 }
 
 type PodResult struct {
@@ -21,9 +23,10 @@ type PodResult struct {
 	Result []Pod  `json:"result"`
 }
 
+// GetPods gets information on all pods on account
 func (s *Sensibo) GetPods() ([]Pod, error) {
 	values := url.Values{
-		"fields": []string{"id,room"},
+		"fields": []string{"id,room,productModel,macAddress"},
 	}
 	data, err := s.get("users/me/pods", values)
 	if err != nil {

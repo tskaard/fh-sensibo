@@ -58,7 +58,7 @@ func (fc *FimpSensiboHandler) Start(pollTimeSec int) error {
 			// Check if app is connected
 			// ADD timer from config
 			if fc.state.Connected {
-				for _, pod := range fc.state.Devices {
+				for _, pod := range fc.state.Pods {
 					measurements, err := fc.api.GetMeasurements(pod.ID)
 					if err != nil {
 						log.Error("Cannot get measurements from device")
@@ -140,10 +140,10 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			break
 		}
 		fc.state.APIkey = val["security_key"]
+		fc.state.Pods = pods
 		for _, pod := range pods {
 			log.Debug(pod.ID)
-			fc.sendInclusionReport(pod.ID, pod.Room.Name, newMsg.Payload)
-			fc.state.Devices = append(fc.state.Devices, model.Device{ID: pod.ID, Name: pod.Room.Name})
+			fc.sendInclusionReport(pod, newMsg.Payload)
 		}
 		fc.state.Connected = true
 		if err := fc.db.Write("data", "state", fc.state); err != nil {
@@ -158,9 +158,9 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			log.Error("Ad is not connected, not able to sync")
 			break
 		}
-		for _, device := range fc.state.Devices {
-			log.Debug(device.ID)
-			fc.sendInclusionReport(device.ID, device.Name, newMsg.Payload)
+		for _, pod := range fc.state.Pods {
+			log.Debug(pod.ID)
+			fc.sendInclusionReport(pod, newMsg.Payload)
 		}
 		log.Info("System synced")
 

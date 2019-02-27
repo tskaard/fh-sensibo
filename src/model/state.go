@@ -1,7 +1,11 @@
 package model
 
+import (
+	sensibo "github.com/tskaard/sensibo/sensibo-api"
+)
+
 type State struct {
-	Connected bool     `json:"connected"`
-	APIkey    string   `json:"api_key"`
-	Devices   []Device `json:"devices"`
+	Connected bool          `json:"connected"`
+	APIkey    string        `json:"api_key"`
+	Pods      []sensibo.Pod `json:"pods"`
 }
