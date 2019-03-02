@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/futurehomeno/fimpgo"
@@ -91,240 +90,28 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 	log.Debug("New fimp msg")
 	switch newMsg.Payload.Type {
 	case "cmd.system.disconnect":
-		log.Debug("cmd.system.disconnect")
 		fc.systemDisconnect(newMsg)
 
 	case "cmd.system.get_connect_params":
-		log.Debug("cmd.system.get_connect_params")
-		// request api_key
-		val := map[string]string{
-			"address": "localhost",
-			"id":      "sensibo",
-		}
-		if fc.state.Connected {
-			val["security_key"] = fc.state.APIkey
-		} else {
-			val["security_key"] = "api_key"
-		}
-		msg := fimpgo.NewStrMapMessage("evt.system.connect_params_report", "sensibo", val, nil, nil, newMsg.Payload)
-		adr := fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sensibo", ResourceAddress: "1"}
-		fc.mqt.Publish(&adr, msg)
-		log.Debug("Connect params message sent")
+		fc.systemGetConnectionParameter(newMsg)
 
 	case "cmd.system.connect":
-		// Do stuff to connect
-		log.Debug("cmd.system.connect")
-
-		if fc.state.Connected {
-			log.Error("App is already connected with system")
-			break
-		}
-		val, err := newMsg.Payload.GetStrMapValue()
-		if err != nil {
-			log.Error("Wrong payload type , expected StrMap")
-			break
-		}
-		if val["security_key"] == "" {
-			log.Error("Did not get a security_key")
-			break
-		}
-
-		fc.api.Key = val["security_key"]
-		pods, err := fc.api.GetPods()
-		if err != nil {
-			log.Error("Cannot get pods information from Sensibo - ", err)
-			fc.api.Key = ""
-			break
-		}
-
-		//fc.state.Pods = pods
-		for _, pod := range pods {
-			log.Debug(pod.ID)
-			log.Debug(pod.ProductModel)
-			if pod.ProductModel != "skyv2" {
-				break
-			}
-			fc.state.Pods = append(fc.state.Pods, pod)
-			fc.sendInclusionReport(pod, newMsg.Payload)
-		}
-		// TODO Check if state has any pods
-		// if not remove API key and set connected to false
-		if fc.state.Pods != nil {
-			fc.state.APIkey = val["security_key"]
-			fc.state.Connected = true
-		} else {
-			fc.state.APIkey = ""
-			fc.state.Connected = false
-		}
-
-		if err := fc.db.Write("data", "state", fc.state); err != nil {
-			log.Error("Did not manage to write to file: ", err)
-			break
-		}
-		log.Debug("System connected")
+		fc.systemConnect(newMsg)
 
 	case "cmd.system.sync":
-		log.Debug("cmd.system.sync")
-		if !fc.state.Connected || fc.state.APIkey == "" {
-			log.Error("Ad is not connected, not able to sync")
-			break
-		}
-		for _, pod := range fc.state.Pods {
-			log.Debug(pod.ID)
-			fc.sendInclusionReport(pod, newMsg.Payload)
-		}
-		log.Info("System synced")
+		fc.systemSync(newMsg)
 
 	case "cmd.setpoint.set":
-		if !(newMsg.Payload.Service == "thermostat") {
-			log.Error("cmd.setpoint.set - Wrong service")
-			break
-		}
-		address := newMsg.Addr.ServiceAddress
-
-		value, err := newMsg.Payload.GetStrMapValue()
-		if err != nil {
-			log.Error("Could not get map of strings from thermostat setpoint set message", err)
-			break
-		}
-		tempSetpointFloat, err := strconv.ParseFloat(value["temp"], 64)
-		if err != nil {
-			log.Error("Not able to convert string to float: ", err)
-			break
-		}
-		// Sensibo only supports int between 16 and 30 deg
-		tempSetpoint := int(tempSetpointFloat)
-		if tempSetpoint <= 16 {
-			tempSetpoint = 16
-		}
-		if tempSetpoint >= 30 {
-			tempSetpoint = 30
-		}
-		acStates, err := fc.api.GetAcStates(address)
-		if err != nil {
-			log.Error("Faild to get current acState: ", err)
-			break
-		}
-		newAcState := acStates[0].AcState
-		newAcState.On = true
-		newAcState.Mode = value["type"]
-		newAcState.TargetTemperature = tempSetpoint
-		if value["unit"] != "" {
-			newAcState.TemperatureUnit = value["unit"]
-		}
-		acStateLog, err := fc.api.ReplaceState(address, newAcState)
-		if err != nil {
-			log.Error("Faild setting new AC state: ", err)
-			break
-		}
-		log.Debug(acStateLog)
-		fc.sendSetpointMsg(address, newAcState, newMsg.Payload)
+		fc.setpointSet(newMsg)
 
 	case "cmd.setpoint.get_report":
-		if !(newMsg.Payload.Service == "thermostat") {
-			log.Error("cmd.setpoint.get_report - Wrong service")
-			break
-		}
-		address := newMsg.Addr.ServiceAddress
-		states, err := fc.api.GetAcStates(address)
-		if err != nil {
-			log.Error("Faild to get current acState: ", err)
-			break
-		}
-		state := states[0].AcState
-		fc.sendSetpointMsg(address, state, newMsg.Payload)
+		fc.setpointGetReport(newMsg)
 
 	case "cmd.mode.set":
-		// Get current ac state and change the mode before sending it back
-		if newMsg.Payload.Service == "thermostat" {
-			address := newMsg.Addr.ServiceAddress
-			newMode, err := newMsg.Payload.GetStringValue()
-			if err != nil {
-				log.Error("Could not get mode from thermostat mode set message", err)
-				break
-			}
-			// Checking if we have a supported mode, and converting if needed
-			if newMode == "auto_changeover" {
-				newMode = "auto"
-			} else if newMode == "dry_air" {
-				newMode = "dry"
-			}
-			if !(newMode == "cool" || newMode == "heat" || newMode == "fan" || newMode == "auto" || newMode == "dry") {
-				log.Error("Not supported thermostat mode : ", newMode)
-				break
-			}
-
-			acStates, err := fc.api.GetAcStates(address)
-			if err != nil {
-				log.Error("Faild to get current acState: ", err)
-				break
-			}
-			newAcState := acStates[0].AcState
-			newAcState.Mode = newMode
-			newAcState.On = true
-			acStateLog, err := fc.api.ReplaceState(address, newAcState)
-			if err != nil {
-				log.Error("Faild setting new AC state: ", err)
-				break
-			}
-			log.Debug(acStateLog)
-			fc.sendThermostatModeMsg(address, newMode, newMsg.Payload)
-
-		} else if newMsg.Payload.Service == "fan_ctrl" {
-			address := newMsg.Addr.ServiceAddress
-			newFanMode, err := newMsg.Payload.GetStringValue()
-			if err != nil {
-				log.Error("Could not get fan mode from fan_ctrl mode set message", err)
-				break
-			}
-			if !(newFanMode == "quiet" || newFanMode == "low" || newFanMode == "medium" || newFanMode == "high" || newFanMode == "auto") {
-				log.Error("Not supported fan mode : ", newFanMode)
-				break
-			}
-			acStates, err := fc.api.GetAcStates(address)
-			if err != nil {
-				log.Error("Faild to get current acState: ", err)
-				break
-			}
-			newAcState := acStates[0].AcState
-			newAcState.FanLevel = newFanMode
-			newAcState.On = true
-			acStateLog, err := fc.api.ReplaceState(address, newAcState)
-			if err != nil {
-				log.Error("Faild setting new AC state: ", err)
-				break
-			}
-			log.Debug(acStateLog)
-			fc.sendFanCtrlMsg(address, newFanMode, newMsg.Payload)
-		} else {
-			log.Error("cmd.mode.set - Wrong service")
-			break
-		}
+		fc.modeSet(newMsg)
 
 	case "cmd.mode.get_report":
-		if newMsg.Payload.Service == "thermostat" {
-			address := newMsg.Addr.ServiceAddress
-			states, err := fc.api.GetAcStates(address)
-			if err != nil {
-				log.Error("Faild to get current acState: ", err)
-				break
-			}
-			mode := states[0].AcState.Mode
-			fc.sendThermostatModeMsg(address, mode, newMsg.Payload)
-
-		} else if newMsg.Payload.Service == "fan_ctrl" {
-			address := newMsg.Addr.ServiceAddress
-			states, err := fc.api.GetAcStates(address)
-			if err != nil {
-				log.Error("Faild to get current acState: ", err)
-				break
-			}
-			fanMode := states[0].AcState.FanLevel
-			fc.sendFanCtrlMsg(address, fanMode, newMsg.Payload)
-		} else {
-			log.Error("cmd.setpoint.get_report - Wrong service")
-			break
-		}
+		fc.modeGetReport(newMsg)
 
 	//case "cmd.state.get_report":
 

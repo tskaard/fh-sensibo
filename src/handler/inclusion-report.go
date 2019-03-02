@@ -100,7 +100,7 @@ func (fc *FimpSensiboHandler) sendInclusionReport(pod sensibo.Pod, oldMsg *fimpg
 	services = append(services, tempSensorService, humidSensorService, thermostatService, fanCtrlService)
 	incReort := fimptype.ThingInclusionReport{
 		Address:        pod.ID,
-		HwVersion:      "1",
+		HwVersion:      pod.ProductModel,
 		CommTechnology: "http",
 		ProductName:    "Sensibo Sky",
 		Groups:         []string{"ch_0"},
