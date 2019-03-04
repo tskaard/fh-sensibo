@@ -1,9 +1,8 @@
 Package: sensibo
-Version: 0.0.5
+Version: 0.0.7
 Replaces: sensibo
 Section: non-free/misc
 Priority: optional
 Architecture: armhf
 Maintainer: Tor Erik Skårdal <skardal@me.com>
-Description: Connects Sensibo device to Futurehome.
-    The app uses Sensibo's REST API go change the AC state and get measurments from the device
+Description: Sensibo sky app.

@@ -1,4 +1,4 @@
-version="0.0.5"
+version="0.0.7"
 version_file=VERSION
 working_dir=$(shell pwd)
 arch="armhf"
@@ -10,7 +10,7 @@ build-go:
 	go build -o sensibo src/service.go
 
 build-go-arm:
-	cd ./src;GOOS=linux GOARCH=arm GOARM=6 go build -o sensibo service.go;cd ../
+	cd ./src;GOOS=linux GOARCH=arm GOARM=6 go build -ldflags="-s -w" -o sensibo service.go;cd ../
 
 build-go-amd:
 	GOOS=linux GOARCH=amd64 go build -o sensibo src/service.go
