@@ -6,43 +6,8 @@ import (
 	"net/url"
 )
 
-type Temperatures struct {
-	C struct {
-		IsNative bool  `json:"isNative"`
-		Values   []int `json:"values"`
-	} `json:"C"`
-}
-
-type Modes struct {
-	Dry struct {
-		Swing        []string     `json:"swing"`
-		Temperatures Temperatures `json:"temperatures"`
-		FanLevels    []string     `json:"fanLevels"`
-	} `json:"dry"`
-	Auto struct {
-		Swing        []string     `json:"swing"`
-		Temperatures Temperatures `json:"temperatures"`
-		FanLevels    []string     `json:"fanLevels"`
-	} `json:"auto"`
-	Heat struct {
-		Swing        []string     `json:"swing"`
-		Temperatures Temperatures `json:"temperatures"`
-		FanLevels    []string     `json:"fanLevels"`
-	} `json:"heat"`
-	Fan struct {
-		Swing        []string     `json:"swing"`
-		Temperatures Temperatures `json:"temperatures"`
-		FanLevels    []string     `json:"fanLevels"`
-	} `json:"fan"`
-	Cool struct {
-		Swing        []string     `json:"swing"`
-		Temperatures Temperatures `json:"temperatures"`
-		FanLevels    []string     `json:"fanLevels"`
-	} `json:"cool"`
-}
-
 type RemoteCapabilities struct {
-	Modes Modes `json:"modes"`
+	Modes map[string]interface{} `json:"modes"`
 }
 
 type Room struct {
