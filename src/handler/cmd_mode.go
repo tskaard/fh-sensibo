@@ -6,17 +6,6 @@ import (
 	sensibo "github.com/tskaard/sensibo-golang"
 )
 
-func checkSupportedFanMode(pod sensibo.Pod, mode string) bool {
-	supported := false
-	fanModes := getSupportedFanModes(pod)
-	for _, m := range fanModes {
-		if m == mode {
-			supported = true
-		}
-	}
-	return supported
-}
-
 func (fc *FimpSensiboHandler) modeGetReport(oldMsg *fimpgo.Message) {
 	if oldMsg.Payload.Service == "thermostat" {
 		address := oldMsg.Addr.ServiceAddress

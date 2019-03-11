@@ -7,68 +7,6 @@ import (
 	sensibo "github.com/tskaard/sensibo-golang"
 )
 
-func getSupportedFanModes(pod sensibo.Pod) []string {
-	fimpModes := []string{"medium", "auto", "auto_low", "auto_high", "auto_mid", "low", "high", "mid", "humid_circulation", "up_down", "left_right", "quiet"}
-	// sensibo "quiet", "low", "medium", "medium_high", "high", "auto"
-	var fanModes []string
-	for acMode, acValue := range pod.RemoteCapabilities.Modes {
-		if acMode == "fan" {
-			if acMapValue, ok := acValue.(map[string]interface{}); ok {
-				for funcKey, funcVal := range acMapValue {
-					if funcKey == "fanLevels" {
-						if sModes, ok := funcVal.([]interface{}); ok {
-							for _, sMode := range sModes {
-								for _, fMode := range fimpModes {
-									if sMode == fMode {
-										fanModes = append(fanModes, fMode)
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	return fanModes
-}
-
-func getSupportedModes(pod sensibo.Pod) []string {
-	var modes []string
-	for acMode := range pod.RemoteCapabilities.Modes {
-		modes = append(modes, acMode)
-	}
-	return modes
-}
-
-func getSupportedSetpoints(pod sensibo.Pod) []string {
-	var modes []string
-	for acMode, acValue := range pod.RemoteCapabilities.Modes {
-		if acMapValue, ok := acValue.(map[string]interface{}); ok {
-			for funcKey, funcValue := range acMapValue {
-				if funcKey == "temperatures" {
-					if temperatures, ok := funcValue.(map[string]interface{}); ok {
-						for degKey, degValue := range temperatures {
-							if degKey == "C" {
-								if tempValue, ok := degValue.(map[string]interface{}); ok {
-									for valueKey, data := range tempValue {
-										if valueKey == "values" {
-											if data != nil {
-												modes = append(modes, acMode)
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	return modes
-}
-
 func buildInterface(iType string, msgType string, valueType string, version string) fimptype.Interface {
 	inter := fimptype.Interface{
 		Type:      iType,
