@@ -24,7 +24,6 @@ func (fc *FimpSensiboHandler) systemDisconnect(msg *fimpgo.Message) {
 		log.Error("Ad is not connected, no devices to exclude")
 		return
 	}
-	// TODO Change pod id yo use address from file
 	for _, pod := range fc.state.Pods {
 		fc.sendExclusionReport(pod.ID, msg.Payload)
 	}
