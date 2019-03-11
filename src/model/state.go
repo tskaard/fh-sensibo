@@ -1,7 +1,7 @@
 package model
 
 import (
-	sensibo "github.com/tskaard/sensibo/sensibo-api"
+	sensibo "github.com/tskaard/sensibo-golang"
 )
 
 type State struct {

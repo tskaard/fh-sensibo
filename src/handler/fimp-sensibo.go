@@ -6,8 +6,8 @@ import (
 	"github.com/futurehomeno/fimpgo"
 	scribble "github.com/nanobox-io/golang-scribble"
 	log "github.com/sirupsen/logrus"
+	sensibo "github.com/tskaard/sensibo-golang"
 	"github.com/tskaard/sensibo/model"
-	sensibo "github.com/tskaard/sensibo/sensibo-api"
 )
 
 // FimpSensiboHandler structure

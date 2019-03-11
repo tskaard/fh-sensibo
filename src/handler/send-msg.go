@@ -5,7 +5,7 @@ import (
 
 	"github.com/futurehomeno/fimpgo"
 	log "github.com/sirupsen/logrus"
-	sensibo "github.com/tskaard/sensibo/sensibo-api"
+	sensibo "github.com/tskaard/sensibo-golang"
 )
 
 func (fc *FimpSensiboHandler) sendTemperatureMsg(addr string, temp float64, oldMsg *fimpgo.FimpMessage) {

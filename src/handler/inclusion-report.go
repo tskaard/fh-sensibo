@@ -4,11 +4,11 @@ import (
 	"github.com/futurehomeno/fimpgo"
 	"github.com/futurehomeno/fimpgo/fimptype"
 	log "github.com/sirupsen/logrus"
-	sensibo "github.com/tskaard/sensibo/sensibo-api"
+	sensibo "github.com/tskaard/sensibo-golang"
 )
 
 func getSupportedFanModes(pod sensibo.Pod) []string {
-	fimpModes := []string{"auto", "auto_low", "auto_high", "auto_mid", "low", "high", "mid", "humid_circulation", "up_down", "left_right", "quiet"}
+	fimpModes := []string{"medium", "auto", "auto_low", "auto_high", "auto_mid", "low", "high", "mid", "humid_circulation", "up_down", "left_right", "quiet"}
 	// sensibo "quiet", "low", "medium", "medium_high", "high", "auto"
 	var fanModes []string
 	for acMode, acValue := range pod.RemoteCapabilities.Modes {
@@ -18,13 +18,9 @@ func getSupportedFanModes(pod sensibo.Pod) []string {
 					if funcKey == "fanLevels" {
 						if sModes, ok := funcVal.([]interface{}); ok {
 							for _, sMode := range sModes {
-								if sMode == "medium" {
-									fanModes = append(fanModes, "mid")
-								} else {
-									for _, fMode := range fimpModes {
-										if sMode == fMode {
-											fanModes = append(fanModes, fMode)
-										}
+								for _, fMode := range fimpModes {
+									if sMode == fMode {
+										fanModes = append(fanModes, fMode)
 									}
 								}
 							}

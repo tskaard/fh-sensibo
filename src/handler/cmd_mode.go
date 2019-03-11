@@ -3,7 +3,19 @@ package handler
 import (
 	"github.com/futurehomeno/fimpgo"
 	log "github.com/sirupsen/logrus"
+	sensibo "github.com/tskaard/sensibo-golang"
 )
+
+func checkSupportedFanMode(pod sensibo.Pod, mode string) bool {
+	supported := false
+	fanModes := getSupportedFanModes(pod)
+	for _, m := range fanModes {
+		if m == mode {
+			supported = true
+		}
+	}
+	return supported
+}
 
 func (fc *FimpSensiboHandler) modeGetReport(oldMsg *fimpgo.Message) {
 	if oldMsg.Payload.Service == "thermostat" {
@@ -40,18 +52,22 @@ func (fc *FimpSensiboHandler) modeSet(oldMsg *fimpgo.Message) {
 			log.Error("Could not get mode from thermostat mode set message", err)
 			return
 		}
-		// Checking if we have a supported mode, and converting if needed
-		if newMode == "auto_changeover" {
-			newMode = "auto"
-		} else if newMode == "dry_air" {
-			newMode = "dry"
+		var pod sensibo.Pod
+		for _, p := range fc.state.Pods {
+			if p.ID == address {
+				pod = p
+				break
+			}
 		}
-		if !(newMode == "cool" || newMode == "heat" || newMode == "fan" || newMode == "auto" || newMode == "dry") {
-			log.Error("Not supported thermostat mode : ", newMode)
+		if pod.ID == "" {
+			log.Error("Address of pod is not stored in state")
 			return
 		}
-
-		acStates, err := fc.api.GetAcStates(address)
+		if !checkSupportedSetpointMode(pod, newMode) {
+			log.Error("Setpoint mode is not supported")
+			return
+		}
+		acStates, err := fc.api.GetAcStates(pod.ID)
 		if err != nil {
 			log.Error("Faild to get current acState: ", err)
 			return
@@ -59,13 +75,13 @@ func (fc *FimpSensiboHandler) modeSet(oldMsg *fimpgo.Message) {
 		newAcState := acStates[0].AcState
 		newAcState.Mode = newMode
 		newAcState.On = true
-		acStateLog, err := fc.api.ReplaceState(address, newAcState)
+		acStateLog, err := fc.api.ReplaceState(pod.ID, newAcState)
 		if err != nil {
 			log.Error("Faild setting new AC state: ", err)
 			return
 		}
 		log.Debug(acStateLog)
-		fc.sendThermostatModeMsg(address, newMode, oldMsg.Payload)
+		fc.sendThermostatModeMsg(pod.ID, newMode, oldMsg.Payload)
 
 	} else if oldMsg.Payload.Service == "fan_ctrl" {
 		address := oldMsg.Addr.ServiceAddress
@@ -74,11 +90,25 @@ func (fc *FimpSensiboHandler) modeSet(oldMsg *fimpgo.Message) {
 			log.Error("Could not get fan mode from fan_ctrl mode set message", err)
 			return
 		}
-		if !(newFanMode == "quiet" || newFanMode == "low" || newFanMode == "medium" || newFanMode == "high" || newFanMode == "auto") {
-			log.Error("Not supported fan mode : ", newFanMode)
+		var pod sensibo.Pod
+		for _, p := range fc.state.Pods {
+			if p.ID == address {
+				pod = p
+				break
+			}
+		}
+		if pod.ID == "" {
+			log.Error("Address of pod is not stored in state")
 			return
 		}
-		acStates, err := fc.api.GetAcStates(address)
+		if !checkSupportedFanMode(pod, newFanMode) {
+			log.Error("Fan mode is not supported")
+			return
+		}
+		if newFanMode == "mid" {
+			newFanMode = "medium"
+		}
+		acStates, err := fc.api.GetAcStates(pod.ID)
 		if err != nil {
 			log.Error("Faild to get current acState: ", err)
 			return
@@ -86,13 +116,13 @@ func (fc *FimpSensiboHandler) modeSet(oldMsg *fimpgo.Message) {
 		newAcState := acStates[0].AcState
 		newAcState.FanLevel = newFanMode
 		newAcState.On = true
-		acStateLog, err := fc.api.ReplaceState(address, newAcState)
+		acStateLog, err := fc.api.ReplaceState(pod.ID, newAcState)
 		if err != nil {
 			log.Error("Faild setting new AC state: ", err)
 			return
 		}
 		log.Debug(acStateLog)
-		fc.sendFanCtrlMsg(address, newFanMode, oldMsg.Payload)
+		fc.sendFanCtrlMsg(pod.ID, newFanMode, oldMsg.Payload)
 	} else {
 		log.Error("cmd.mode.set - Wrong service")
 		return
