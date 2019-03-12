@@ -1,84 +1,31 @@
-#!/bin/bash
-
+#!/bin/sh
 set -e
 
-# summary of how this script can be called:
-#		* <postinst> `configure' <most-recently-configured-version>
-#		* <old-postinst> `abort-upgrade' <new version>
-#		* <conflictor's-postinst> `abort-remove' `in-favour' <package>
-#		  <new-version>
-#		* <postinst> `abort-remove'
-#		* <deconfigured's-postinst> `abort-deconfigure' `in-favour'
-#		  <failed-install-package> <version> `removing'
-#		  <conflicting-package> <version>
-# for details, see http://www.debian.org/doc/debian-policy/ or
-# the debian-policy package
+if [ "$1" = "configure" ]
+then
+  groupadd -r futurehome || true
+  groupadd -r sensibo || true
 
-add_user_and_group()
-{
-	if ! getent group sensibo >/dev/null
-	then
-		echo -n "Adding group sensibo.."
-		addgroup --quiet \
-			--system \
-			sensibo 2>/dev/null || true
-		echo "..done"
-	fi
+  useradd -r -N -M -d / -s /bin/false -g sensibo sensibo || true
 
-	if ! getent passwd sensibo >/dev/null
-	then
-		echo -n "Adding user sensibo.."
-		adduser --quiet \
-			--system \
-			--ingroup sensibo \
-			--no-create-home \
-			--disabled-password \
-			sensibo 2>/dev/null || true
-		echo "..done"
-	fi
+  chown -R sensibo:futurehome /var/log/futurehome/sensibo/ || true
+  chown -R sensibo:sensibo /var/lib/futurehome/sensibo/ || true
+fi
 
-}
+deb-systemd-helper unmask sensibo.service >/dev/null || true
 
-set_ownership()
-{
-	chown -R sensibo:sensibo /var/lib/futurehome/sensibo
-	chown -R sensibo:sensibo /var/log/futurehome/sensibo
-}
+if deb-systemd-helper --quiet was-enabled sensibo.service; then
+  deb-systemd-helper enable sensibo.service >/dev/null || true
+else
+  deb-systemd-helper update-state sensibo.service >/dev/null || true
+fi
 
-configure_defaults()
-{
-	if [ ! -d /var/log/futurehome/sensibo ]
- 	then
-        echo "Setting up logging dir"
-        mkdir -m 755 -p /var/log/futurehome/sensibo
-		touch /var/log/futurehome/sensibo/sensibo.log
-		mkdir -m 755 -p /var/lib/futurehome/sensibo/data
-		touch /var/lib/futurehome/sensibo/data/state.json
-    fi
-}
+if [ -d /run/systemd/system ]; then
+  systemctl --system daemon-reload >/dev/null || true
 
-case "$1" in
-	configure)
-	    echo "Configuring.."
-		add_user_and_group
-		configure_defaults
-		set_ownership
-       
-		# Start Sensibo
-		if [ -f /usr/bin/sensibo ]
-		then
-		    systemctl enable sensibo.service
-			systemctl start sensibo.service
-		fi
-	;;
-
-	abort-upgrade|abort-remove|abort-deconfigure)
-	;;
-
-	*)
-		echo "postinst called with unknown argument \`$1'" >&2
-		exit 1
-	;;
-esac
-
-exit 0
+  if [ -n "$2" ]; then
+    deb-systemd-invoke try-restart sensibo.service >/dev/null || true
+  else
+    deb-systemd-invoke start sensibo.service >/dev/null || true
+  fi
+fi

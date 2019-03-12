@@ -1,4 +1,4 @@
-version="1.0.0"
+version="1.0.1"
 version_file=VERSION
 working_dir=$(shell pwd)
 arch="armhf"
@@ -30,6 +30,7 @@ package-tar:
 package-deb-doc:
 	@echo "Packaging application as debian package"
 	chmod a+x package/debian/DEBIAN/*
+	mkdir -p package/debian/var/log/futurehome/sensibo package/debian/var/lib/futurehome/sensibo/data
 	cp ./src/sensibo package/debian/usr/bin/sensibo
 	cp VERSION package/debian/var/lib/futurehome/sensibo
 	docker run --rm -v ${working_dir}:/build -w /build --name debuild debian dpkg-deb --build package/debian
