@@ -12,6 +12,8 @@ if [ "$1" = "remove" ]; then
 fi
 
 if [ "$1" = "purge" ]; then
+  rm -rf /var/lib/futurehome/sensibo/data
+  
   if [ -x "/usr/bin/deb-systemd-helper" ]; then
     deb-systemd-helper purge sensibo.service >/dev/null
     deb-systemd-helper unmask sensibo.service >/dev/null
