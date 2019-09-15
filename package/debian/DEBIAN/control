@@ -1,8 +1,7 @@
 Package: sensibo
-Version: 1.0.1
-Replaces: sensibo
+Version: 1.0.3
 Section: non-free/misc
 Priority: optional
 Architecture: armhf
 Maintainer: Tor Erik Skårdal <skardal@me.com>
-Description: Sensibo sky app.
+Description: Control Sensibo Sky from futurehome.

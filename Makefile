@@ -1,10 +1,11 @@
-version="1.0.1"
+version="1.0.3"
 version_file=VERSION
 working_dir=$(shell pwd)
 arch="armhf"
 
 clean:
-	-rm tpflow
+	-rm ./src/sensibo
+	find . -name '.DS_Store' -type f -delete
 
 build-go:
 	go build -o sensibo src/service.go
@@ -43,7 +44,7 @@ tar-arm: build-js build-go-arm package-deb-doc
 deb-arm : clean configure-arm build-go-arm package-deb-doc
 	mv package/debian.deb package/build/sensibo_$(version)_armhf.deb
 
-deb-amd : configure-amd64 build-go-amd package-deb-doc-2
+deb-amd : configure-amd64 build-go-amd package-deb-doc
 	mv debian.deb sensibo_$(version)_amd64.deb
 
 run :
