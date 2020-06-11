@@ -99,7 +99,7 @@ func (fc *FimpSensiboHandler) modeSet(oldMsg *fimpgo.Message) {
 		}
 		acStates, err := fc.api.GetAcStates(pod.ID)
 		if err != nil {
-			log.Error("Faild to get current acState: ", err)
+			log.Error("Failed to get current acState: ", err)
 			return
 		}
 		newAcState := acStates[0].AcState

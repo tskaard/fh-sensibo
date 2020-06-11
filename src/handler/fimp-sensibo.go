@@ -51,7 +51,9 @@ func (fc *FimpSensiboHandler) Start(pollTimeSec int) error {
 		}
 	}(fc.inboundMsgCh)
 	// Setting up ticker to poll information from cloud
-	fc.ticker = time.NewTicker(time.Second * time.Duration(pollTimeSec))
+
+	// fc.ticker = time.NewTicker(time.Second * time.Duration(pollTimeSec))
+	fc.ticker = time.NewTicker(time.Minute * 5)
 	go func() {
 		for range fc.ticker.C {
 			// Check if app is connected
@@ -89,6 +91,12 @@ func (fc *FimpSensiboHandler) Start(pollTimeSec int) error {
 func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 	log.Debug("New fimp msg")
 	switch newMsg.Payload.Type {
+
+	case "cmd.auth.set_tokens":
+		fc.systemConnect(newMsg)
+		fc.systemGetConnectionParameter(newMsg)
+		fc.systemSync(newMsg)
+
 	case "cmd.system.disconnect":
 		fc.systemDisconnect(newMsg)
 
@@ -113,6 +121,8 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 	case "cmd.mode.get_report":
 		fc.modeGetReport(newMsg)
 
+	case "cmd.thing.get_inclusion_report":
+		fc.sendSingleInclusionReport(newMsg)
 	//case "cmd.state.get_report":
 
 	case "cmd.sensor.get_report":

@@ -118,3 +118,16 @@ func (fc *FimpSensiboHandler) sendInclusionReport(pod sensibo.Pod, oldMsg *fimpg
 	fc.mqt.Publish(&adr, msg)
 	log.Debug("Inclusion report sent")
 }
+
+func (fc *FimpSensiboHandler) sendSingleInclusionReport(oldMsg *fimpgo.Message) {
+	deviceId, err := oldMsg.Payload.GetStringValue()
+	if err != nil {
+		log.Debug("could not get string value from payload")
+	}
+	for _, pod := range fc.state.Pods {
+		log.Debug(pod.ID)
+		if pod.ID == deviceId {
+			fc.sendInclusionReport(pod, oldMsg.Payload)
+		}
+	}
+}

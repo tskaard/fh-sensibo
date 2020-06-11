@@ -87,11 +87,10 @@ func (fc *FimpSensiboHandler) systemConnect(oldMsg *fimpgo.Message) {
 		fc.state.Pods = append(fc.state.Pods, pod)
 		fc.sendInclusionReport(pod, oldMsg.Payload)
 	}
-	if fc.state.Pods != nil {
-		fc.state.APIkey = val["security_key"]
+	fc.state.APIkey = val["security_key"]
+	if fc.state.APIkey != "" {
 		fc.state.Connected = true
 	} else {
-		fc.state.APIkey = ""
 		fc.state.Connected = false
 	}
 
