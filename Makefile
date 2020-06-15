@@ -48,7 +48,7 @@ deb-amd : configure-amd64 build-go-amd package-deb-doc
 	mv debian.deb sensibo_$(version)_amd64.deb
 
 run :
-	cd ./src; go run service.go -c testdata/var/config.json;cd ../
+	cd ./src; go run service.go -c testdata ../
 
 
 .phony : clean

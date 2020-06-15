@@ -1,8 +1,10 @@
 module github.com/tskaard/sensibo
 
+go 1.14
+
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
-	github.com/futurehomeno/fimpgo v1.1.3
+	github.com/futurehomeno/fimpgo v1.5.3
 	github.com/jcelliott/lumber v0.0.0-20160324203708-dd349441af25 // indirect
 	github.com/llun/sensibo-golang v0.0.0-20170512145302-26487151560e
 	github.com/nanobox-io/golang-scribble v0.0.0-20180621225840-336beac0a992

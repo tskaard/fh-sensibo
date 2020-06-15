@@ -1,10 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"time"
+
+	"github.com/futurehomeno/fimpgo/edgeapp"
+
+	"github.com/tskaard/sensibo/utils"
 
 	"github.com/futurehomeno/fimpgo"
 	log "github.com/sirupsen/logrus"
@@ -40,24 +43,34 @@ func SetupLog(logfile string, level string, logFormat string) {
 }
 
 func main() {
-	configs := model.Configs{}
-	var configFile string
-	flag.StringVar(&configFile, "c", "", "Config file")
+	var workDir string
+	flag.StringVar(&workDir, "c", "", "Work dir")
 	flag.Parse()
-	if configFile == "" {
-		configFile = "./config.json"
+	if workDir == "" {
+		workDir = "./"
 	} else {
-		fmt.Println("Loading configs from file ", configFile)
+		fmt.Println("Work dir", workDir)
 	}
-	configFileBody, err := ioutil.ReadFile(configFile)
-	err = json.Unmarshal(configFileBody, &configs)
-	if err != nil {
-		fmt.Print(err)
-		panic("Can't load config file.")
-	}
+	appLifecycle := edgeapp.NewAppLifecycle()
 
-	SetupLog(configs.LogFile, configs.LogLevel, configs.LogFormat)
+	configs := model.NewConfigs(workDir)
+	err := configs.LoadFromFile()
+	if err != nil {
+		appLifecycle.SetAppState(edgeapp.AppStateStartupError, nil)
+		fmt.Print(err)
+		panic("Can't load config file")
+	}
+	if err != nil {
+		appLifecycle.SetConfigState(edgeapp.ConfigStateNotConfigured)
+		log.Debug("Not able to load state")
+		log.Debug(err)
+	}
+	utils.SetupLog(configs.LogFile, configs.LogLevel, configs.LogFormat)
 	log.Info("--------------Starting sensibo----------------")
+	appLifecycle.SetAppState(edgeapp.AppStateStarting, nil)
+	appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
+	appLifecycle.SetConfigState(edgeapp.ConfigStateNotConfigured)
+	appLifecycle.SetConnectionState(edgeapp.ConnStateDisconnected)
 
 	mqtt := fimpgo.NewMqttTransport(configs.MqttServerURI, configs.MqttClientIdPrefix, configs.MqttUsername, configs.MqttPassword, true, 1, 1)
 	err = mqtt.Start()
@@ -67,6 +80,25 @@ func main() {
 	} else {
 		log.Info("--------------Connected----------------")
 	}
+	defer mqtt.Stop()
+
+	if err := edgeapp.NewSystemCheck().WaitForInternet(5 * time.Minute); err == nil {
+		log.Info("<main> Internet connection - OK")
+	} else {
+		log.Error("<main> Internet connection - ERROR")
+	}
+	state := model.State{}
+	if state.IsConfigured() && err == nil {
+		appLifecycle.SetConfigState(edgeapp.ConfigStateConfigured)
+		appLifecycle.SetAppState(edgeapp.AppStateRunning, nil)
+		appLifecycle.SetConnectionState(edgeapp.ConnStateConnected)
+		appLifecycle.SetAuthState(edgeapp.AuthStateAuthenticated)
+	} else {
+		appLifecycle.SetConfigState(edgeapp.ConfigStateNotConfigured)
+		appLifecycle.SetAppState(edgeapp.AppStateNotConfigured, nil)
+		appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
+	}
+
 	fimpHandler := handler.NewFimpSensiboHandler(mqtt, configs.StateDir)
 	fimpHandler.Start(configs.PollTimeSec)
 	log.Info("--------------Started handler----------")

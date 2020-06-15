@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/futurehomeno/fimpgo"
+	"github.com/futurehomeno/fimpgo/edgeapp"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -11,11 +12,21 @@ func (fc *FimpSensiboHandler) systemSync(oldMsg *fimpgo.Message) {
 		log.Error("Ad is not connected, not able to sync")
 		return
 	}
+	fc.appLifecycle.SetConnectionState(edgeapp.ConnStateConnecting)
 	for _, pod := range fc.state.Pods {
 		log.Debug(pod.ID)
 		fc.sendInclusionReport(pod, oldMsg.Payload)
 	}
+	fc.appLifecycle.SetConnectionState(edgeapp.ConnStateConnected)
 	log.Info("System synced")
+}
+
+func (fc *FimpSensiboHandler) getAuthStatus(oldMsg *fimpgo.Message) {
+	log.Debug("cmd.auth.set_tokens")
+	val := fc.appLifecycle.GetAllStates()
+	msg := fimpgo.NewMessage("evt.auth.status_report", "sensibo", fimpgo.VTypeObject, val, nil, nil, oldMsg.Payload)
+	adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sensibo", ResourceAddress: "1"}
+	fc.mqt.Publish(adr, msg)
 }
 
 func (fc *FimpSensiboHandler) systemDisconnect(msg *fimpgo.Message) {
@@ -30,10 +41,10 @@ func (fc *FimpSensiboHandler) systemDisconnect(msg *fimpgo.Message) {
 	fc.state.Connected = false
 	fc.state.APIkey = ""
 	fc.state.Pods = nil
+	fc.appLifecycle.SetConnectionState(edgeapp.ConnStateDisconnected)
 	if err := fc.db.Write("data", "state", fc.state); err != nil {
 		log.Error("Did not manage to write to file: ", err)
 	}
-
 }
 
 func (fc *FimpSensiboHandler) systemGetConnectionParameter(oldMsg *fimpgo.Message) {
@@ -58,15 +69,19 @@ func (fc *FimpSensiboHandler) systemConnect(oldMsg *fimpgo.Message) {
 	log.Debug("cmd.system.connect")
 	if fc.state.Connected {
 		log.Error("App is already connected with system")
+		fc.appLifecycle.SetAppState(edgeapp.AppStateRunning, nil)
 		return
 	}
 	val, err := oldMsg.Payload.GetStrMapValue()
+	fc.appLifecycle.SetAuthState(edgeapp.AuthStateInProgress)
 	if err != nil {
 		log.Error("Wrong payload type , expected StrMap")
+		fc.appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
 		return
 	}
 	if val["security_key"] == "" {
 		log.Error("Did not get a security_key")
+		fc.appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
 		return
 	}
 
@@ -75,6 +90,7 @@ func (fc *FimpSensiboHandler) systemConnect(oldMsg *fimpgo.Message) {
 	if err != nil {
 		log.Error("Cannot get pods information from Sensibo - ", err)
 		fc.api.Key = ""
+		fc.appLifecycle.SetAuthState(edgeapp.AuthStateAuthenticated)
 		return
 	}
 
@@ -90,8 +106,10 @@ func (fc *FimpSensiboHandler) systemConnect(oldMsg *fimpgo.Message) {
 	fc.state.APIkey = val["security_key"]
 	if fc.state.APIkey != "" {
 		fc.state.Connected = true
+		fc.appLifecycle.SetAuthState(edgeapp.AuthStateAuthenticated)
 	} else {
 		fc.state.Connected = false
+		fc.appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
 	}
 
 	if err := fc.db.Write("data", "state", fc.state); err != nil {

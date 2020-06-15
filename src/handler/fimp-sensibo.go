@@ -3,6 +3,8 @@ package handler
 import (
 	"time"
 
+	"github.com/futurehomeno/fimpgo/edgeapp"
+
 	"github.com/futurehomeno/fimpgo"
 	scribble "github.com/nanobox-io/golang-scribble"
 	log "github.com/sirupsen/logrus"
@@ -18,6 +20,8 @@ type FimpSensiboHandler struct {
 	db           *scribble.Driver
 	state        model.State
 	ticker       *time.Ticker
+	configs      model.Configs
+	appLifecycle edgeapp.Lifecycle
 }
 
 // NewFimpSensiboHandler construct new handler
@@ -51,9 +55,7 @@ func (fc *FimpSensiboHandler) Start(pollTimeSec int) error {
 		}
 	}(fc.inboundMsgCh)
 	// Setting up ticker to poll information from cloud
-
-	// fc.ticker = time.NewTicker(time.Second * time.Duration(pollTimeSec))
-	fc.ticker = time.NewTicker(time.Minute * 5)
+	fc.ticker = time.NewTicker(time.Second * time.Duration(pollTimeSec))
 	go func() {
 		for range fc.ticker.C {
 			// Check if app is connected
@@ -89,22 +91,34 @@ func (fc *FimpSensiboHandler) Start(pollTimeSec int) error {
 }
 
 func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
+	// configs := model.Configs{}
 	log.Debug("New fimp msg")
+	if fc.state.IsConfigured() {
+		fc.appLifecycle.SetConnectionState(edgeapp.ConnStateConnected)
+		fc.appLifecycle.SetConfigState(edgeapp.ConfigStateConfigured)
+	}
+
 	switch newMsg.Payload.Type {
 
 	case "cmd.auth.set_tokens":
 		fc.systemConnect(newMsg)
 		fc.systemGetConnectionParameter(newMsg)
 		fc.systemSync(newMsg)
+		fc.getAuthStatus(newMsg)
+
+		fc.configs.SaveToFile()
+		fc.state.SaveToFile()
 
 	case "cmd.system.disconnect":
 		fc.systemDisconnect(newMsg)
+		fc.state.SaveToFile()
 
 	case "cmd.system.get_connect_params":
 		fc.systemGetConnectionParameter(newMsg)
 
 	case "cmd.system.connect":
 		fc.systemConnect(newMsg)
+		fc.state.SaveToFile()
 
 	case "cmd.system.sync":
 		fc.systemSync(newMsg)
@@ -124,6 +138,76 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 	case "cmd.thing.get_inclusion_report":
 		fc.sendSingleInclusionReport(newMsg)
 	//case "cmd.state.get_report":
+
+	case "cmd.app.get_manifest":
+		mode, err := newMsg.Payload.GetStringValue()
+		log.Debug(fc.configs)
+		if err != nil {
+			log.Error("Incorrect request format ")
+			return
+		}
+		manifest := edgeapp.NewManifest()
+		// err = manifest.LoadFromFile(filepath.Join(fc.configs.GetDefaultDir(), "app-manifest.json"))
+		err = manifest.LoadFromFile("testdata/defaults/app-manifest.json")
+		if err != nil {
+			log.Error("Failed to load manifest file .Error :", err.Error())
+			return
+		}
+		if mode == "manifest_state" {
+			manifest.AppState = *fc.appLifecycle.GetAllStates()
+			// manifest.AppState.Auth = string(fc.appLifecycle.AuthState())
+			fc.configs.ConnectionState = string(fc.appLifecycle.ConnectionState())
+			fc.configs.Errors = fc.appLifecycle.GetAllStates().LastErrorText
+			confstate := make(map[string]interface{})
+			// manifest.ConfigState = make(map[string]interface{})
+			confstate["configured_at"] = fc.state.ConfiguredAt
+			confstate["configured_by"] = fc.state.ConfiguredBy
+			confstate["connected"] = fc.state.Connected
+			confstate["api_key"] = fc.state.APIkey
+			manifest.ConfigState = confstate
+		}
+
+		if errConf := manifest.GetAppConfig("errors"); errConf != nil {
+			if fc.configs.Errors == "" {
+				errConf.Hidden = true
+			} else {
+				errConf.Hidden = false
+			}
+		}
+		connectButton := manifest.GetButton("connect")
+		disconnectButton := manifest.GetButton("disconnect")
+		if connectButton != nil && disconnectButton != nil {
+			if fc.appLifecycle.ConnectionState() == edgeapp.ConnStateConnected {
+				connectButton.Hidden = true
+				disconnectButton.Hidden = false
+			} else {
+				connectButton.Hidden = false
+				disconnectButton.Hidden = true
+			}
+		}
+		if syncButton := manifest.GetButton("sync"); syncButton != nil {
+			if fc.appLifecycle.ConnectionState() == edgeapp.ConnStateConnected {
+				syncButton.Hidden = false
+			} else {
+				syncButton.Hidden = true
+			}
+		}
+		connBlock := manifest.GetUIBlock("connect")
+		settingsBlock := manifest.GetUIBlock("settings")
+		if connBlock != nil && settingsBlock != nil {
+			if fc.state.Pods != nil {
+				connBlock.Hidden = false
+				settingsBlock.Hidden = false
+			} else {
+				connBlock.Hidden = true
+				settingsBlock.Hidden = true
+			}
+		}
+		msg := fimpgo.NewMessage("evt.app.manifest_report", "sensibo", fimpgo.VTypeObject, manifest, nil, nil, newMsg.Payload)
+		adr := &fimpgo.Address{MsgType: "rsp", ResourceType: "cloud", ResourceName: "remote-client", ResourceAddress: "smarthome-app"}
+		if fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
+			fc.mqt.Publish(adr, msg)
+		}
 
 	case "cmd.sensor.get_report":
 		log.Debug("cmd.sensor.get_report")
