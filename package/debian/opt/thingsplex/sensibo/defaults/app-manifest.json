@@ -1,0 +1,75 @@
+{
+  "configs":[
+    {
+      "id": "poll_time_sec",
+      "label": {"en": "Poll time in minutes"},
+      "val_t": "string",
+      "ui": {
+        "type": "input_string"
+      },
+      "val": {
+        "default": ""
+      },
+      "config_point": "any"
+    }
+  ],
+  "ui_buttons": [
+    {
+      "id":"sync",
+      "label": {"en": "sync"},
+      "req": {
+        "serv":"sensibo",
+        "intf_t": "cmd.system.sync",
+        "val": ""
+      },
+      "hidden": false
+    }
+  ],
+  "ui_blocks": [
+    {
+      "id":"sync",
+      "header": {"en": "Synchronize with Sensibo app"},
+      "text": {"en": "The app will find and include all devices connected to your Sensibo user. You need to be logged in before synchronizing."},
+      "configs": [],  
+      "buttons": ["sync"],
+      "footer": {"en": ""}
+    },
+    {
+      "id":"poll_time_sec",
+      "header": {"en": "Poll Time"},
+      "text": {"en": "Set how often you want futurehome to get temperature reports from Sensibo in minutes."},
+      "configs": ["poll_time_min"],
+      "buttons": [],
+      "footer": {"en": "Click save to save new poll time. After changing this value you need to stop and start the Sensibo app in playgrounds."},
+      "hidden": false
+    }
+  ],
+  "auth": {
+    "type": "oauth2_code_grant",
+    "code_grant_login_page_url":"",
+    "redirect_url": "https://app-static.futurehome.io/playground_oauth_callback",
+    "client_id": "YpHZwIY3redfur1qVZqrYSbkp911K3Sw9w8jk3Yt",
+    "secret":"yT7qjvEwRM8sFmUuQAeFwTeGTna0yZdpkrMEawWUEERk8VN6nqlGfrCWn3nsj37uIn0VkoScW7bAx6IWuKEXFeO1MIyG5w5Je5GJhGJmlWDUHAQSHpE2xs8GOxSld757",
+    "partner_id": "first-partner",
+    "auth_endpoint": ""
+},
+  "init_flow":["auth", "connect"],
+  "services": [
+    {
+      "name": "sensibo",
+      "alias": "Network managment",
+      "address": "/rt:ad/rn:sensibo/ad:1",
+      "interfaces": [
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.auth.set_tokens",
+          "val_t": "str_map",
+          "ver": "1"
+        }
+      ]
+    }
+  ],
+  "app_state": {
+
+  }
+}

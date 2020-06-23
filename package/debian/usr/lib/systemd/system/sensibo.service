@@ -1,11 +1,11 @@
 [Unit]
-Description=Sensibo Sky app
+Description=sensibo
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/sensibo -c /etc/futurehome/sensibo/config.json
+ExecStart=/opt/thingsplex/sensibo/sensibo
 User=sensibo
-WorkingDirectory=/var/lib/futurehome/sensibo
+WorkingDirectory=/opt/thingsplex/sensibo
 Restart=always
 StandardOutput=null
 StandardError=null

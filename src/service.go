@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/tskaard/sensibo/handler"
 	"github.com/tskaard/sensibo/model"
-	lumberjack "gopkg.in/natefinch/lumberjack.v2"
+	lumberjack "gopkg.in/natefinch/lumberjack.v2
 )
 
 // SetupLog comment
@@ -81,6 +81,7 @@ func main() {
 		log.Info("--------------Connected----------------")
 	}
 	defer mqtt.Stop()
+	appLifecycle.SetAppState(edgeapp.AppStateRunning, nil)
 
 	if err := edgeapp.NewSystemCheck().WaitForInternet(5 * time.Minute); err == nil {
 		log.Info("<main> Internet connection - OK")
@@ -90,16 +91,15 @@ func main() {
 	state := model.State{}
 	if state.IsConfigured() && err == nil {
 		appLifecycle.SetConfigState(edgeapp.ConfigStateConfigured)
-		appLifecycle.SetAppState(edgeapp.AppStateRunning, nil)
 		appLifecycle.SetConnectionState(edgeapp.ConnStateConnected)
 		appLifecycle.SetAuthState(edgeapp.AuthStateAuthenticated)
 	} else {
 		appLifecycle.SetConfigState(edgeapp.ConfigStateNotConfigured)
-		appLifecycle.SetAppState(edgeapp.AppStateNotConfigured, nil)
+		// appLifecycle.SetAppState(edgeapp.AppStateNotConfigured, nil)
 		appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
 	}
 
-	fimpHandler := handler.NewFimpSensiboHandler(mqtt, configs.StateDir)
+	fimpHandler := handler.NewFimpSensiboHandler(mqtt, configs.StateDir, appLifecycle)
 	fimpHandler.Start(configs.PollTimeSec)
 	log.Info("--------------Started handler----------")
 

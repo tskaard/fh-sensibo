@@ -3,19 +3,19 @@ set -e
 
 if [ "$1" = "configure" ]
 then
-  groupadd -r futurehome || true
+  groupadd -r thingsplex || true
   groupadd -r sensibo || true
 
-  useradd -r -N -M -d / -s /bin/false -g sensibo sensibo || true
+  useradd -r -N -M -d / -s /bin/false -g thingsplex sensibo || true
 
-  chown -R sensibo:futurehome /var/log/futurehome/sensibo/ || true
-  chown -R sensibo:sensibo /var/lib/futurehome/sensibo/ || true
+  chown -R sensibo:thingsplex /var/log/thingsplex/sensibo/sensibo.log || true
+  chown -R sensibo:sensibo /opt/thingsplex/sensibo/ || true
 fi
 
 deb-systemd-helper unmask sensibo.service >/dev/null || true
 
 if deb-systemd-helper --quiet was-enabled sensibo.service; then
-  deb-systemd-helper enable sensibo.service >/dev/null || true
+  systemctl enable sensibo.service || true
 else
   deb-systemd-helper update-state sensibo.service >/dev/null || true
 fi

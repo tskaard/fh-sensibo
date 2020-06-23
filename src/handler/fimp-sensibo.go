@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"path/filepath"
 	"time"
 
 	"github.com/futurehomeno/fimpgo/edgeapp"
@@ -21,12 +22,12 @@ type FimpSensiboHandler struct {
 	state        model.State
 	ticker       *time.Ticker
 	configs      model.Configs
-	appLifecycle edgeapp.Lifecycle
+	appLifecycle *edgeapp.Lifecycle
 }
 
 // NewFimpSensiboHandler construct new handler
-func NewFimpSensiboHandler(transport *fimpgo.MqttTransport, stateFile string) *FimpSensiboHandler {
-	fc := &FimpSensiboHandler{inboundMsgCh: make(fimpgo.MessageCh, 5), mqt: transport}
+func NewFimpSensiboHandler(transport *fimpgo.MqttTransport, stateFile string, appLifecycle *edgeapp.Lifecycle) *FimpSensiboHandler {
+	fc := &FimpSensiboHandler{inboundMsgCh: make(fimpgo.MessageCh, 5), mqt: transport, appLifecycle: appLifecycle}
 	fc.mqt.RegisterChannel("ch1", fc.inboundMsgCh)
 	fc.api = sensibo.NewSensibo("")
 	fc.db, _ = scribble.New(stateFile, nil)
@@ -147,16 +148,16 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			return
 		}
 		manifest := edgeapp.NewManifest()
-		// err = manifest.LoadFromFile(filepath.Join(fc.configs.GetDefaultDir(), "app-manifest.json"))
-		err = manifest.LoadFromFile("testdata/defaults/app-manifest.json")
+		err = manifest.LoadFromFile(filepath.Join(fc.configs.GetDefaultDir(), "app-manifest.json"))
 		if err != nil {
 			log.Error("Failed to load manifest file .Error :", err.Error())
 			return
 		}
 		if mode == "manifest_state" {
 			manifest.AppState = *fc.appLifecycle.GetAllStates()
-			// manifest.AppState.Auth = string(fc.appLifecycle.AuthState())
+			log.Debug(manifest.AppState)
 			fc.configs.ConnectionState = string(fc.appLifecycle.ConnectionState())
+
 			fc.configs.Errors = fc.appLifecycle.GetAllStates().LastErrorText
 			confstate := make(map[string]interface{})
 			// manifest.ConfigState = make(map[string]interface{})
