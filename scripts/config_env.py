@@ -7,7 +7,7 @@ def set_deb_control(version , arch):
     template+= "Section: non-free/misc\n"
     template+= "Priority: optional\n"
     template+= "Architecture: "+arch+"\n"
-    template+= "Maintainer: Tor Erik Skårdal <skardal@me.com>\n"
+    template+= "Maintainer: Tor Erik Skaardal <skardal@me.com>\n"
     template+= "Description: Control Sensibo Sky from futurehome.\n"
 
     f = open(file_name,"w")

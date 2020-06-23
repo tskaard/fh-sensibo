@@ -3,5 +3,5 @@ Version: 1.0.3
 Section: non-free/misc
 Priority: optional
 Architecture: armhf
-Maintainer: Tor Erik Skårdal <skardal@me.com>
+Maintainer: Tor Erik Skaardal <skardal@me.com>
 Description: Control Sensibo Sky from futurehome.

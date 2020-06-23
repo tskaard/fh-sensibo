@@ -8,5 +8,5 @@
   "log_level": "debug",
   "log_format": "text",
   "state_dir": "/var/lib/futurehome/sensibo/",
-  "poll_time_sec": 300
+  "poll_time_sec": 60
 }
