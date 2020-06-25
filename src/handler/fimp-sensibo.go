@@ -114,6 +114,34 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 		fc.systemDisconnect(newMsg)
 		fc.state.SaveToFile()
 
+	case "cmd.auth.logout":
+		fc.systemDisconnect(newMsg)
+		fc.state.SaveToFile()
+
+	case "cmd.config.extended_set":
+		log.Debug("excuse")
+		err := newMsg.Payload.GetObjectValue(&fc.state)
+		if err != nil {
+			log.Debug("Can't get object value for fan_ctrl")
+		}
+		fanMode := fc.state.FanMode
+
+		for i := 0; i < len(fc.state.Pods); i++ {
+			podID := fc.state.Pods[i].ID
+			log.Debug(podID)
+			adr, _ := fimpgo.NewAddressFromString("pt:j1/mt:cmd/rt:dev/rn:sensibo/ad:1/sv:fan_ctrl/ad:" + podID)
+			msg := fimpgo.NewMessage("cmd.mode.set", "fan_ctrl", fimpgo.VTypeString, fanMode, nil, nil, newMsg.Payload)
+			fc.mqt.Publish(adr, msg)
+		}
+		configReport := model.ConfigReport{
+			OpStatus: "ok",
+			AppState: *fc.appLifecycle.GetAllStates(),
+		}
+		msg := fimpgo.NewMessage("evt.app.config_report", model.ServiceName, fimpgo.VTypeObject, configReport, nil, nil, newMsg.Payload)
+		if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
+			log.Debug("cant respond to wanted topic")
+		}
+
 	case "cmd.system.get_connect_params":
 		fc.systemGetConnectionParameter(newMsg)
 

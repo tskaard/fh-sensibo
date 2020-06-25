@@ -1,57 +1,42 @@
 {
   "configs":[
     {
-      "id": "poll_time_sec",
-      "label": {"en": "Poll time in minutes"},
+      "id": "fan_ctrl",
+      "label": {"en": "Fan controll"},
       "val_t": "string",
       "ui": {
-        "type": "input_string"
+        "type": "select_horizontal",
+        "select": [{"val": "quiet","label": {"en": "quiet"}},{"val": "low","label":{"en": "low"}},{"val": "medium","label":{"en": "medium"}},{"val": "high","label":{"en": "high"}},{"val": "auto","label":{"en": "auto"}}]
       },
       "val": {
         "default": ""
       },
+      "is_required": true,
+      "hidden":false,
       "config_point": "any"
     }
   ],
   "ui_buttons": [
-    {
-      "id":"sync",
-      "label": {"en": "sync"},
-      "req": {
-        "serv":"sensibo",
-        "intf_t": "cmd.system.sync",
-        "val": ""
-      },
-      "hidden": false
-    }
   ],
   "ui_blocks": [
     {
-      "id":"sync",
-      "header": {"en": "Synchronize with Sensibo app"},
-      "text": {"en": "The app will find and include all devices connected to your Sensibo user. You need to be logged in before synchronizing."},
-      "configs": [],  
-      "buttons": ["sync"],
-      "footer": {"en": ""}
-    },
-    {
-      "id":"poll_time_sec",
-      "header": {"en": "Poll Time"},
-      "text": {"en": "Set how often you want futurehome to get temperature reports from Sensibo in minutes."},
-      "configs": ["poll_time_min"],
+      "id": "fan_ctrl",
+      "header": {"en": "fan controll"},
+      "text": {"en": ""},
+      "configs": ["fan_ctrl"],
       "buttons": [],
-      "footer": {"en": "Click save to save new poll time. After changing this value you need to stop and start the Sensibo app in playgrounds."},
-      "hidden": false
+      "footer": {"en": ""},
+      "hidden":false
     }
   ],
   "auth": {
     "type": "oauth2_code_grant",
-    "code_grant_login_page_url":"",
-    "redirect_url": "https://app-static.futurehome.io/playground_oauth_callback",
+    "code_grant_login_page_url":"https://home.sensibo.com/o/authorize?&client_id=YpHZwIY3redfur1qVZqrYSbkp911K3Sw9w8jk3Yt&redirect_uri=https://app-static-beta.futurehome.io/playground_oauth_callback&state=asd123",
+    "redirect_url": "https://app-static-beta.futurehome.io/playground_oauth_callback",
     "client_id": "YpHZwIY3redfur1qVZqrYSbkp911K3Sw9w8jk3Yt",
-    "secret":"yT7qjvEwRM8sFmUuQAeFwTeGTna0yZdpkrMEawWUEERk8VN6nqlGfrCWn3nsj37uIn0VkoScW7bAx6IWuKEXFeO1MIyG5w5Je5GJhGJmlWDUHAQSHpE2xs8GOxSld757",
-    "partner_id": "first-partner",
-    "auth_endpoint": ""
+    "secret":"",
+    "partner_id": "sensibo",
+    "auth_endpoint": "https://partners-beta.futurehome.io/api/edge/proxy/auth-code"
 },
   "init_flow":["auth", "connect"],
   "services": [

@@ -33,17 +33,35 @@ func (fc *FimpSensiboHandler) systemDisconnect(msg *fimpgo.Message) {
 	log.Debug("cmd.system.disconnect")
 	if !fc.state.Connected {
 		log.Error("Ad is not connected, no devices to exclude")
+		val2 := map[string]interface{}{
+			"errors":  nil,
+			"success": false,
+		}
+		newMsg := fimpgo.NewMessage("evt.pd7.response", "vinculum", fimpgo.VTypeObject, val2, nil, nil, msg.Payload)
+		if err := fc.mqt.RespondToRequest(msg.Payload, newMsg); err != nil {
+			log.Error("Could not respond to wanted request")
+		}
 		return
 	}
 	for _, pod := range fc.state.Pods {
 		fc.sendExclusionReport(pod.ID, msg.Payload)
 	}
+	fc.appLifecycle.SetConnectionState(edgeapp.ConnStateDisconnected)
+	fc.appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
+	fc.appLifecycle.SetConfigState(edgeapp.ConfigStateNotConfigured)
 	fc.state.Connected = false
 	fc.state.APIkey = ""
 	fc.state.Pods = nil
-	fc.appLifecycle.SetConnectionState(edgeapp.ConnStateDisconnected)
 	if err := fc.db.Write("data", "state", fc.state); err != nil {
 		log.Error("Did not manage to write to file: ", err)
+	}
+	val2 := map[string]interface{}{
+		"errors":  nil,
+		"success": true,
+	}
+	newMsg := fimpgo.NewMessage("evt.pd7.response", "vinculum", fimpgo.VTypeObject, val2, nil, nil, msg.Payload)
+	if err := fc.mqt.RespondToRequest(msg.Payload, newMsg); err != nil {
+		log.Error("Could not respond to wanted request")
 	}
 }
 

@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/tskaard/sensibo/handler"
 	"github.com/tskaard/sensibo/model"
-	lumberjack "gopkg.in/natefinch/lumberjack.v2
+	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
 // SetupLog comment
@@ -54,12 +54,14 @@ func main() {
 	appLifecycle := edgeapp.NewAppLifecycle()
 
 	configs := model.NewConfigs(workDir)
+	states := model.NewStates(workDir)
 	err := configs.LoadFromFile()
 	if err != nil {
 		appLifecycle.SetAppState(edgeapp.AppStateStartupError, nil)
 		fmt.Print(err)
 		panic("Can't load config file")
 	}
+	err = states.LoadFromFile()
 	if err != nil {
 		appLifecycle.SetConfigState(edgeapp.ConfigStateNotConfigured)
 		log.Debug("Not able to load state")
@@ -88,14 +90,13 @@ func main() {
 	} else {
 		log.Error("<main> Internet connection - ERROR")
 	}
-	state := model.State{}
-	if state.IsConfigured() && err == nil {
+	if states.IsConfigured() && err == nil {
+		log.Debug(states.APIkey)
 		appLifecycle.SetConfigState(edgeapp.ConfigStateConfigured)
 		appLifecycle.SetConnectionState(edgeapp.ConnStateConnected)
 		appLifecycle.SetAuthState(edgeapp.AuthStateAuthenticated)
 	} else {
 		appLifecycle.SetConfigState(edgeapp.ConfigStateNotConfigured)
-		// appLifecycle.SetAppState(edgeapp.AppStateNotConfigured, nil)
 		appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
 	}
 

@@ -22,6 +22,7 @@ type State struct {
 	Connected    bool          `json:"connected"`
 	APIkey       string        `json:"api_key"`
 	Pods         []sensibo.Pod `json:"pods"`
+	FanMode      string        `json:"fan_ctrl"`
 }
 
 func NewStates(workDir string) *State {
