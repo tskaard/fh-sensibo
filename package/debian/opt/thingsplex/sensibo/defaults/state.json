@@ -1,5 +1,5 @@
 {
     "connected": false,
-    "apiKey": "secret_key",
+    "apiKey": "access_token",
     "pods": []
 }

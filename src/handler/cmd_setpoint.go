@@ -3,7 +3,7 @@ package handler
 import (
 	"github.com/futurehomeno/fimpgo"
 	log "github.com/sirupsen/logrus"
-	sensibo "github.com/tskaard/sensibo-golang"
+	sensibo "github.com/tskaard/sensibo/sensibo-api"
 )
 
 func (fc *FimpSensiboHandler) setpointGetReport(oldMsg *fimpgo.Message) {
@@ -12,7 +12,7 @@ func (fc *FimpSensiboHandler) setpointGetReport(oldMsg *fimpgo.Message) {
 		return
 	}
 	address := oldMsg.Addr.ServiceAddress
-	states, err := fc.api.GetAcStates(address)
+	states, err := fc.api.GetAcStates(address, fc.api.Key)
 	if err != nil {
 		log.Error("Faild to get current acState: ", err)
 		return
@@ -49,7 +49,7 @@ func (fc *FimpSensiboHandler) setpointSet(oldMsg *fimpgo.Message) {
 	}
 	setpointMode := value["type"]
 	tempSetpoint := getSupportedSetpoint(pod, value)
-	acStates, err := fc.api.GetAcStates(pod.ID)
+	acStates, err := fc.api.GetAcStates(pod.ID, fc.api.Key)
 	if err != nil {
 		log.Error("Faild to get current acState: ", err)
 		return
@@ -61,7 +61,7 @@ func (fc *FimpSensiboHandler) setpointSet(oldMsg *fimpgo.Message) {
 	if value["unit"] != "" {
 		newAcState.TemperatureUnit = value["unit"]
 	}
-	acStateLog, err := fc.api.ReplaceState(pod.ID, newAcState)
+	acStateLog, err := fc.api.ReplaceState(pod.ID, newAcState, fc.api.Key)
 	if err != nil {
 		log.Error("Faild setting new AC state: ", err)
 		// not break bur return something?

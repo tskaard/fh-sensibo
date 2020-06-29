@@ -31,12 +31,12 @@
   ],
   "auth": {
     "type": "oauth2_code_grant",
-    "code_grant_login_page_url":"https://home.sensibo.com/o/authorize?&client_id=YpHZwIY3redfur1qVZqrYSbkp911K3Sw9w8jk3Yt&redirect_uri=https://app-static-beta.futurehome.io/playground_oauth_callback&state=asd123",
+    "code_grant_login_page_url":"https://home.sensibo.com/o/authorize?response_type=code&scope=read+write",
     "redirect_url": "https://app-static-beta.futurehome.io/playground_oauth_callback",
     "client_id": "YpHZwIY3redfur1qVZqrYSbkp911K3Sw9w8jk3Yt",
-    "secret":"",
+    "secret":"",  
     "partner_id": "sensibo",
-    "auth_endpoint": "https://partners-beta.futurehome.io/api/edge/proxy/auth-code"
+    "auth_endpoint": "https://partners-beta.futurehome.io/api/edge/proxy/custom/auth-code"
 },
   "init_flow":["auth", "connect"],
   "services": [

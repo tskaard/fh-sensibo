@@ -33,7 +33,7 @@ type Configs struct {
 	ConfiguredAt       string `json:"configured_at"`
 	ConfiguredBy       string `json:"configured_by"`
 	Errors             string `json:"errors"`
-	apiKey             string `json:"security_key"`
+	apiKey             string `json:"access_token"`
 }
 
 func NewConfigs(workDir string) *Configs {

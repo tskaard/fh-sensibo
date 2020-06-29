@@ -25,8 +25,7 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
-github.com/llun/sensibo-golang v0.0.0-20170512145302-26487151560e h1:SSBLEJBMUYywnhkJmjxZ8ufK7vvjky+M0G6aZw9ob9Y=
-github.com/llun/sensibo-golang v0.0.0-20170512145302-26487151560e/go.mod h1:Wa9keIPL39fWZQw2hYfa4TDn7L4XUAIGGPGMqkSJh+8=
+
 github.com/nanobox-io/golang-scribble v0.0.0-20180621225840-336beac0a992 h1:zIRkVn8ZX7aGrS297sWNvZsyu99I3anNIHiMVpOuK/g=
 github.com/nanobox-io/golang-scribble v0.0.0-20180621225840-336beac0a992/go.mod h1:4Mct/lWCFf1jzQTTAaWtOI7sXqmG+wBeiBfT4CxoaJk=
 github.com/pkg/errors v0.0.0-20161029093637-248dadf4e906 h1:aXc/AM323HlkOXjl3QuSO06wbXK45HrzBT+pwVOufXg=
@@ -42,8 +41,7 @@ github.com/sonyarouje/simdb v0.0.0-20181202125413-c2488dfc374a/go.mod h1:EOV7qxV
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
-github.com/tskaard/sensibo-golang v0.0.0-20190311212157-cd6ac68414be h1:atCiv24viYUPwV0G7cNPde9BJTezI22yahtRPN7p44Q=
-github.com/tskaard/sensibo-golang v0.0.0-20190311212157-cd6ac68414be/go.mod h1:epwqEDJ7S1FPNn1yIeFdFdNu3BHV3M84H5HFOPGvJcI=
+
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793 h1:u+LnwYTOOW7Ukr/fppxEb1Nwz0AtPflrblfvUudpo+I=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20181030102418-4d3f4d9ffa16 h1:y6ce7gCWtnH+m3dCjzQ1PCuwl28DDIc3VNnvY29DlIA=

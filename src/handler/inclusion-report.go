@@ -4,7 +4,7 @@ import (
 	"github.com/futurehomeno/fimpgo"
 	"github.com/futurehomeno/fimpgo/fimptype"
 	log "github.com/sirupsen/logrus"
-	sensibo "github.com/tskaard/sensibo-golang"
+	sensibo "github.com/tskaard/sensibo/sensibo-api"
 )
 
 func buildInterface(iType string, msgType string, valueType string, version string) fimptype.Interface {

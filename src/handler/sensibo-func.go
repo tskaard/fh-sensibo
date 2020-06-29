@@ -5,7 +5,7 @@ import (
 	"math"
 	"strconv"
 
-	sensibo "github.com/tskaard/sensibo-golang"
+	sensibo "github.com/tskaard/sensibo/sensibo-api"
 )
 
 func checkSupportedFanMode(pod sensibo.Pod, mode string) bool {

@@ -11,7 +11,7 @@ import (
 	"github.com/futurehomeno/fimpgo/edgeapp"
 	"github.com/futurehomeno/fimpgo/utils"
 	log "github.com/sirupsen/logrus"
-	sensibo "github.com/tskaard/sensibo-golang"
+	sensibo "github.com/tskaard/sensibo/sensibo-api"
 )
 
 type State struct {
@@ -20,7 +20,7 @@ type State struct {
 	ConfiguredAt string        `json:"configured_at"`
 	ConfiguredBy string        `json:"configured_by"`
 	Connected    bool          `json:"connected"`
-	APIkey       string        `json:"api_key"`
+	APIkey       string        `json:"access_token"`
 	Pods         []sensibo.Pod `json:"pods"`
 	FanMode      string        `json:"fan_ctrl"`
 }

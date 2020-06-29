@@ -9,8 +9,9 @@ import (
 	"github.com/futurehomeno/fimpgo"
 	scribble "github.com/nanobox-io/golang-scribble"
 	log "github.com/sirupsen/logrus"
-	sensibo "github.com/tskaard/sensibo-golang"
+
 	"github.com/tskaard/sensibo/model"
+	"github.com/tskaard/sensibo/sensibo-api"
 )
 
 // FimpSensiboHandler structure
@@ -63,7 +64,7 @@ func (fc *FimpSensiboHandler) Start(pollTimeSec int) error {
 			// ADD timer from config
 			if fc.state.Connected {
 				for _, pod := range fc.state.Pods {
-					measurements, err := fc.api.GetMeasurements(pod.ID)
+					measurements, err := fc.api.GetMeasurements(pod.ID, fc.api.Key)
 					if err != nil {
 						log.Error("Cannot get measurements from device")
 						break
@@ -73,7 +74,7 @@ func (fc *FimpSensiboHandler) Start(pollTimeSec int) error {
 					humid := measurements[0].Humidity
 					fc.sendHumidityMsg(pod.ID, humid, nil)
 
-					states, err := fc.api.GetAcStates(pod.ID)
+					states, err := fc.api.GetAcStates(pod.ID, fc.api.Key)
 					if err != nil {
 						log.Error("Faild to get current acState: ", err)
 						break
@@ -102,6 +103,35 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 	switch newMsg.Payload.Type {
 
 	case "cmd.auth.set_tokens":
+		err := newMsg.Payload.GetObjectValue(&fc.state)
+		fc.appLifecycle.SetAuthState(edgeapp.AuthStateInProgress)
+		if err != nil {
+			log.Error("Wrong payload type , expected Object")
+			fc.appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
+			return
+		}
+
+		//This does not work for some reason
+		if fc.state.APIkey != "" && fc.state.APIkey != "access_token" {
+			val2 := map[string]interface{}{
+				"errors":  nil,
+				"success": true,
+			}
+			respMsg := fimpgo.NewMessage("evt.pd7.response", "vinculum", fimpgo.VTypeObject, val2, nil, nil, newMsg.Payload)
+			if err := fc.mqt.RespondToRequest(newMsg.Payload, respMsg); err != nil {
+				log.Error("Could not respond to wanted request")
+			}
+		} else {
+			val2 := map[string]interface{}{
+				"errors":  nil,
+				"success": false,
+			}
+			respMsg := fimpgo.NewMessage("evt.pd7.response", "vinculum", fimpgo.VTypeObject, val2, nil, nil, newMsg.Payload)
+			if err := fc.mqt.RespondToRequest(newMsg.Payload, respMsg); err != nil {
+				log.Error("Could not respond to wanted request")
+			}
+		}
+
 		fc.systemConnect(newMsg)
 		fc.systemGetConnectionParameter(newMsg)
 		fc.systemSync(newMsg)
@@ -192,7 +222,7 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			confstate["configured_at"] = fc.state.ConfiguredAt
 			confstate["configured_by"] = fc.state.ConfiguredBy
 			confstate["connected"] = fc.state.Connected
-			confstate["api_key"] = fc.state.APIkey
+			confstate["access_token"] = fc.state.APIkey
 			manifest.ConfigState = confstate
 		}
 
@@ -246,7 +276,7 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 		}
 		log.Debug("Getting measurements")
 		address := newMsg.Addr.ServiceAddress
-		measurements, err := fc.api.GetMeasurements(address)
+		measurements, err := fc.api.GetMeasurements(address, fc.api.Key)
 		if err != nil {
 			log.Error("Cannot get measurements from device")
 			break

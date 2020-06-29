@@ -3,13 +3,13 @@ package handler
 import (
 	"github.com/futurehomeno/fimpgo"
 	log "github.com/sirupsen/logrus"
-	sensibo "github.com/tskaard/sensibo-golang"
+	sensibo "github.com/tskaard/sensibo/sensibo-api"
 )
 
 func (fc *FimpSensiboHandler) modeGetReport(oldMsg *fimpgo.Message) {
 	if oldMsg.Payload.Service == "thermostat" {
 		address := oldMsg.Addr.ServiceAddress
-		states, err := fc.api.GetAcStates(address)
+		states, err := fc.api.GetAcStates(address, fc.api.Key)
 		if err != nil {
 			log.Error("Faild to get current acState: ", err)
 			return
@@ -19,7 +19,7 @@ func (fc *FimpSensiboHandler) modeGetReport(oldMsg *fimpgo.Message) {
 
 	} else if oldMsg.Payload.Service == "fan_ctrl" {
 		address := oldMsg.Addr.ServiceAddress
-		states, err := fc.api.GetAcStates(address)
+		states, err := fc.api.GetAcStates(address, fc.api.Key)
 		if err != nil {
 			log.Error("Faild to get current acState: ", err)
 			return
@@ -56,7 +56,7 @@ func (fc *FimpSensiboHandler) modeSet(oldMsg *fimpgo.Message) {
 			log.Error("Setpoint mode is not supported")
 			return
 		}
-		acStates, err := fc.api.GetAcStates(pod.ID)
+		acStates, err := fc.api.GetAcStates(pod.ID, fc.api.Key)
 		if err != nil {
 			log.Error("Faild to get current acState: ", err)
 			return
@@ -64,7 +64,7 @@ func (fc *FimpSensiboHandler) modeSet(oldMsg *fimpgo.Message) {
 		newAcState := acStates[0].AcState
 		newAcState.Mode = newMode
 		newAcState.On = true
-		acStateLog, err := fc.api.ReplaceState(pod.ID, newAcState)
+		acStateLog, err := fc.api.ReplaceState(pod.ID, newAcState, fc.api.Key)
 		if err != nil {
 			log.Error("Faild setting new AC state: ", err)
 			return
@@ -97,7 +97,7 @@ func (fc *FimpSensiboHandler) modeSet(oldMsg *fimpgo.Message) {
 		if newFanMode == "mid" {
 			newFanMode = "medium"
 		}
-		acStates, err := fc.api.GetAcStates(pod.ID)
+		acStates, err := fc.api.GetAcStates(pod.ID, fc.api.Key)
 		if err != nil {
 			log.Error("Failed to get current acState: ", err)
 			return
@@ -105,7 +105,7 @@ func (fc *FimpSensiboHandler) modeSet(oldMsg *fimpgo.Message) {
 		newAcState := acStates[0].AcState
 		newAcState.FanLevel = newFanMode
 		newAcState.On = true
-		acStateLog, err := fc.api.ReplaceState(pod.ID, newAcState)
+		acStateLog, err := fc.api.ReplaceState(pod.ID, newAcState, fc.api.Key)
 		if err != nil {
 			log.Error("Faild setting new AC state: ", err)
 			return

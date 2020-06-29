@@ -73,9 +73,9 @@ func (fc *FimpSensiboHandler) systemGetConnectionParameter(oldMsg *fimpgo.Messag
 		"id":      "sensibo",
 	}
 	if fc.state.Connected {
-		val["security_key"] = fc.state.APIkey
+		val["access_token"] = fc.state.APIkey
 	} else {
-		val["security_key"] = "api_key"
+		val["access_token"] = "api_key"
 	}
 	msg := fimpgo.NewStrMapMessage("evt.system.connect_params_report", "sensibo", val, nil, nil, oldMsg.Payload)
 	adr := fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sensibo", ResourceAddress: "1"}
@@ -90,25 +90,26 @@ func (fc *FimpSensiboHandler) systemConnect(oldMsg *fimpgo.Message) {
 		fc.appLifecycle.SetAppState(edgeapp.AppStateRunning, nil)
 		return
 	}
-	val, err := oldMsg.Payload.GetStrMapValue()
-	fc.appLifecycle.SetAuthState(edgeapp.AuthStateInProgress)
-	if err != nil {
-		log.Error("Wrong payload type , expected StrMap")
-		fc.appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
-		return
-	}
-	if val["security_key"] == "" {
+	// err := oldMsg.Payload.GetObjectValue(&fc.state)
+	// fc.appLifecycle.SetAuthState(edgeapp.AuthStateInProgress)
+	// if err != nil {
+	// 	log.Error("Wrong payload type , expected Object")
+	// 	fc.appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
+	// 	return
+	// }
+	if fc.state.APIkey == "" {
 		log.Error("Did not get a security_key")
 		fc.appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
 		return
 	}
 
-	fc.api.Key = val["security_key"]
-	pods, err := fc.api.GetPods()
+	fc.api.Key = fc.state.APIkey
+	log.Debug(fc.api.Key)
+	pods, err := fc.api.GetPods(fc.api.Key)
 	if err != nil {
 		log.Error("Cannot get pods information from Sensibo - ", err)
 		fc.api.Key = ""
-		fc.appLifecycle.SetAuthState(edgeapp.AuthStateAuthenticated)
+		fc.appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
 		return
 	}
 
@@ -121,7 +122,7 @@ func (fc *FimpSensiboHandler) systemConnect(oldMsg *fimpgo.Message) {
 		fc.state.Pods = append(fc.state.Pods, pod)
 		fc.sendInclusionReport(pod, oldMsg.Payload)
 	}
-	fc.state.APIkey = val["security_key"]
+
 	if fc.state.APIkey != "" {
 		fc.state.Connected = true
 		fc.appLifecycle.SetAuthState(edgeapp.AuthStateAuthenticated)
