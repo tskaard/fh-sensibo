@@ -23,11 +23,6 @@ After the app is installed on the smarthub you need to go to playgrounds -> Sens
 If it was successfull you will see `Authenticated`, `Configured` and `Connected` in **appdetails** in playgrounds. 
 
 You will now see one or more Sensibo devices in list of your devices in the Futurehome app.
-<<<<<<< HEAD
-=======
-
-![](images/connected.png)
->>>>>>> f7829c4c663111587d0ac3b86b27778b1526683f
 
 ## Use
 After connecting with the Sensibo app and getting the device(s) in your Futurehome app, you need to add it to a room.  
