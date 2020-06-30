@@ -14,9 +14,34 @@
       "is_required": true,
       "hidden":false,
       "config_point": "any"
+    },
+    {
+      "id": "mode",
+      "label": {"en": "Mode"},
+      "val_t": "string",
+      "ui": {
+        "type": "list_radio",
+        "select": [{"val": "cool","label": {"en": "cool"}},{"val": "heat","label":{"en": "heat"}}, {"val": "auto","label": {"en": "auto"}}]
+      },
+      "val": {
+        "default": ""
+      },
+      "is_required": true,
+      "hidden":false,
+      "config_point": "any"
     }
   ],
   "ui_buttons": [
+    {
+      "id":"sync",
+      "label": {"en": "sync"},
+      "req": {
+        "serv":"sensibo",
+        "intf_t": "cmd.system.sync",
+        "val": ""
+      },
+      "hidden": false
+    }
   ],
   "ui_blocks": [
     {
@@ -27,6 +52,23 @@
       "buttons": [],
       "footer": {"en": ""},
       "hidden":false
+    },
+    {
+      "id": "mode",
+      "header": {"en": "mode controll"},
+      "text": {"en": ""},
+      "configs": ["mode"],
+      "buttons": [],
+      "footer": {"en": ""},
+      "hidden":false
+    },
+    {
+      "id":"sync",
+      "header": {"en": "Synchronize with Sensibo app"},
+      "text": {"en": "The app will find and include all devices connected to your Sensibo user. You need to be logged in before synchronizing."},
+      "configs": [],
+      "buttons": ["sync"],
+      "footer": {"en": ""}
     }
   ],
   "auth": {
@@ -50,6 +92,159 @@
           "msg_t": "cmd.auth.set_tokens",
           "val_t": "str_map",
           "ver": "1"
+        },
+        {
+          "intf_t": "out",
+          "msg_t": "evt.system.connect_params_report",
+          "val_t": "str_map",
+          "ver": "1"
+        },
+        {
+          "intf_t": "out",
+          "msg_t": "evt.auth.status_report",
+          "val_t": "string",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.system.get_connect_params",
+          "val_t": "string",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.network.get_all_nodes",
+          "val_t": "null",
+          "ver": "1"
+        },
+        {
+          "intf_t": "out",
+          "msg_t": "evt.network.all_nodes_report",
+          "val_t": "object",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.app.get_manifest",
+          "val_t": "null",
+          "ver": "1"
+        },
+        {
+          "intf_t": "out",
+          "msg_t": "evt.app.manifest_report",
+          "val_t": "object",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.app.get_state",
+          "val_t": "string",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.config.get_extended_reoprt",
+          "val_t": "string",
+          "ver": "1"
+        },
+        {
+          "intf_t": "out",
+          "msg_t": "evt.config.extended_report",
+          "val_t": "object",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.config.extended_set",
+          "val_t": "str_map",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "evt.app.config_report",
+          "val_t": "object",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.log.set_level",
+          "val_t": "string",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.system.reconnect",
+          "val_t": "null",
+          "ver": "1"
+        },
+        {
+          "intf_t": "out",
+          "msg_t": "evt.app.config_action_report",
+          "val_t": "object",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.app.factory_reset",
+          "val_t": "string",
+          "ver": "1"
+        },
+        {
+          "intf_t": "out",
+          "msg_t": "cmd.app.config_action_report",
+          "val_t": "object",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.thing.get_inclusion_report",
+          "val_t": "string",
+          "ver": "1"
+        },
+        {
+          "intf_t": "out",
+          "msg_t": "evt.thing.inclusion_report",
+          "val_t": "object",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.thing.inclusion",
+          "val_t": "string",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.thing.delete",
+          "val_t": "string",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.auth.login",
+          "val_t": "object",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.auth.logout",
+          "val_t": "string",
+          "ver": "1"
+        },
+        {
+          "intf_t": "out",
+          "msg_t": "evt.thing.exclusion_report",
+          "val_t": "string",
+          "ver": "1"
+        },
+        {
+          "intf_t": "in",
+          "msg_t": "cmd.system.sync",
+          "val_t": "string",
+          "ver": "1"
+        },
+        {
+
         }
       ]
     }

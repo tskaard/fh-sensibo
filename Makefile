@@ -31,10 +31,9 @@ package-tar:
 package-deb-doc:
 	@echo "Packaging application as debian package"
 	chmod a+x package/debian/DEBIAN/*
-	mkdir -p package/debian/var/log/thingsplex/sensibo package/debian/var/lib/futurehome/sensibo/data package debian/usr/bin
+	mkdir -p package/debian/var/log/thingsplex/sensibo package debian/usr/bin
 	mkdir -p package/build
 	cp ./src/sensibo package/debian/opt/thingsplex/sensibo
-	cp VERSION package/debian/var/lib/futurehome/sensibo
 	docker run --rm -v ${working_dir}:/build -w /build --name debuild debian dpkg-deb --build package/debian
 	@echo "Done"
 

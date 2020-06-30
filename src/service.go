@@ -106,6 +106,7 @@ func main() {
 
 	mqtt.Subscribe("pt:j1/mt:cmd/rt:ad/rn:sensibo/ad:1")
 	mqtt.Subscribe("pt:j1/mt:cmd/rt:dev/rn:sensibo/ad:1/#")
+	mqtt.Subscribe("pt:j1/mt:cmd/rt:ad/rn:zigbee/ad:1")
 	log.Info("Subscribing to topic: pt:j1/mt:cmd/rt:ad/rn:sensibo/ad:1")
 	log.Info("Subscribing to topic: pt:j1/mt:cmd/rt:dev/rn:sensibo/ad:1/#")
 

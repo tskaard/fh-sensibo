@@ -23,6 +23,7 @@ type State struct {
 	APIkey       string        `json:"access_token"`
 	Pods         []sensibo.Pod `json:"pods"`
 	FanMode      string        `json:"fan_ctrl"`
+	Mode         string        `json:"mode"`
 }
 
 func NewStates(workDir string) *State {
