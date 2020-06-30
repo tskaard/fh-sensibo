@@ -57,6 +57,7 @@ func (fc *FimpSensiboHandler) sendAcState(addr string, acState sensibo.AcState, 
 	if acState.Mode == "" {
 		log.Error("AcState does not include Mode")
 	} else {
+		fc.state.Mode = acState.Mode
 		mode := acState.Mode
 		fc.sendThermostatModeMsg(addr, mode, oldMsg)
 	}
@@ -68,6 +69,7 @@ func (fc *FimpSensiboHandler) sendAcState(addr string, acState sensibo.AcState, 
 	if acState.FanLevel == "" {
 		log.Error("Fan Level is not included in acState")
 	} else {
+		fc.state.FanMode = acState.FanLevel
 		fanMode := acState.FanLevel
 		fc.sendFanCtrlMsg(addr, fanMode, oldMsg)
 	}

@@ -54,6 +54,7 @@ func (fc *FimpSensiboHandler) setpointSet(oldMsg *fimpgo.Message) {
 		log.Error("Faild to get current acState: ", err)
 		return
 	}
+	fc.state.Mode = setpointMode
 	newAcState := acStates[0].AcState
 	newAcState.On = true
 	newAcState.Mode = setpointMode

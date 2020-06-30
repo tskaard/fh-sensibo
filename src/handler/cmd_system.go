@@ -7,6 +7,11 @@ import (
 )
 
 func (fc *FimpSensiboHandler) systemSync(oldMsg *fimpgo.Message) {
+	pods, err := fc.api.GetPods(fc.api.Key)
+	if err != nil {
+		log.Error("Can't get pods from Sensibo")
+	}
+	fc.state.Pods = pods
 	log.Debug("cmd.system.sync")
 	if !fc.state.Connected || fc.state.APIkey == "" {
 		log.Error("Ad is not connected, not able to sync")
@@ -90,13 +95,6 @@ func (fc *FimpSensiboHandler) systemConnect(oldMsg *fimpgo.Message) {
 		fc.appLifecycle.SetAppState(edgeapp.AppStateRunning, nil)
 		return
 	}
-	// err := oldMsg.Payload.GetObjectValue(&fc.state)
-	// fc.appLifecycle.SetAuthState(edgeapp.AuthStateInProgress)
-	// if err != nil {
-	// 	log.Error("Wrong payload type , expected Object")
-	// 	fc.appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
-	// 	return
-	// }
 	if fc.state.APIkey == "" {
 		log.Error("Did not get a security_key")
 		fc.appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
@@ -104,7 +102,6 @@ func (fc *FimpSensiboHandler) systemConnect(oldMsg *fimpgo.Message) {
 	}
 
 	fc.api.Key = fc.state.APIkey
-	log.Debug(fc.api.Key)
 	pods, err := fc.api.GetPods(fc.api.Key)
 	if err != nil {
 		log.Error("Cannot get pods information from Sensibo - ", err)

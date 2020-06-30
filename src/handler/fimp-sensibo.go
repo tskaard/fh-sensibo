@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/futurehomeno/fimpgo/edgeapp"
+	"github.com/futurehomeno/fimpgo/utils"
 
 	"github.com/futurehomeno/fimpgo"
 	scribble "github.com/nanobox-io/golang-scribble"
@@ -110,27 +111,34 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			fc.appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
 			return
 		}
-
-		//This does not work for some reason
+		log.Debug(fc.state.APIkey)
+		// This does not work for some reason
 		if fc.state.APIkey != "" && fc.state.APIkey != "access_token" {
-			val2 := map[string]interface{}{
+			loginval := map[string]interface{}{
 				"errors":  nil,
 				"success": true,
 			}
-			respMsg := fimpgo.NewMessage("evt.pd7.response", "vinculum", fimpgo.VTypeObject, val2, nil, nil, newMsg.Payload)
-			if err := fc.mqt.RespondToRequest(newMsg.Payload, respMsg); err != nil {
-				log.Error("Could not respond to wanted request")
+			newadr, err := fimpgo.NewAddressFromString("pt:j1/mt:rsp/rt:cloud/rn:remote-client/ad:smarthome-app")
+			if err != nil {
+				log.Debug("Could not make login response topic")
 			}
-		} else {
-			val2 := map[string]interface{}{
-				"errors":  nil,
-				"success": false,
-			}
-			respMsg := fimpgo.NewMessage("evt.pd7.response", "vinculum", fimpgo.VTypeObject, val2, nil, nil, newMsg.Payload)
-			if err := fc.mqt.RespondToRequest(newMsg.Payload, respMsg); err != nil {
-				log.Error("Could not respond to wanted request")
-			}
+			respMsg := fimpgo.NewMessage("evt.pd7.response", "vinculum", fimpgo.VTypeStrMap, loginval, nil, nil, newMsg.Payload)
+			respMsg.CorrelationID = newMsg.Payload.UID
+			fc.mqt.Publish(newadr, respMsg)
 		}
+		//  else {
+		// 	loginval := map[string]interface{}{
+		// 		"errors":  nil,
+		// 		"success": false,
+		// 	}
+		// 	newadr, err := fimpgo.NewAddressFromString("pt:j1/mt:rsp/rt:cloud/rn:remote-client/ad:smarthome-app")
+		// 	if err != nil {
+		// 		log.Debug("Could not make login response topic")
+		// 	}
+		// 	respMsg := fimpgo.NewMessage("evt.pd7.response", "vinculum", fimpgo.VTypeObject, loginval, nil, nil, newMsg.Payload)
+		// 	respMsg.CorrelationID = newMsg.Payload.UID
+		// 	fc.mqt.Publish(newadr, respMsg)
+		// }
 
 		fc.systemConnect(newMsg)
 		fc.systemGetConnectionParameter(newMsg)
@@ -149,18 +157,23 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 		fc.state.SaveToFile()
 
 	case "cmd.config.extended_set":
-		log.Debug("excuse")
 		err := newMsg.Payload.GetObjectValue(&fc.state)
 		if err != nil {
-			log.Debug("Can't get object value for fan_ctrl")
+			log.Debug("Can't get object value")
 		}
 		fanMode := fc.state.FanMode
+		mode := fc.state.Mode
+		fc.state.SaveToFile()
 
 		for i := 0; i < len(fc.state.Pods); i++ {
 			podID := fc.state.Pods[i].ID
 			log.Debug(podID)
 			adr, _ := fimpgo.NewAddressFromString("pt:j1/mt:cmd/rt:dev/rn:sensibo/ad:1/sv:fan_ctrl/ad:" + podID)
 			msg := fimpgo.NewMessage("cmd.mode.set", "fan_ctrl", fimpgo.VTypeString, fanMode, nil, nil, newMsg.Payload)
+			fc.mqt.Publish(adr, msg)
+
+			adr, _ = fimpgo.NewAddressFromString("pt:j1/mt:cmd/rt:dev/rn:sensibo/ad:1/sv:thermostat/ad:" + podID)
+			msg = fimpgo.NewMessage("cmd.mode.set", "thermostat", fimpgo.VTypeString, mode, nil, nil, newMsg.Payload)
 			fc.mqt.Publish(adr, msg)
 		}
 		configReport := model.ConfigReport{
@@ -199,8 +212,15 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 	//case "cmd.state.get_report":
 
 	case "cmd.app.get_manifest":
+		var env string
+		hubInfo, err := utils.NewHubUtils().GetHubInfo()
+		if err == nil && hubInfo != nil {
+			env = hubInfo.Environment
+		} else {
+			env = utils.EnvBeta
+		}
+
 		mode, err := newMsg.Payload.GetStringValue()
-		log.Debug(fc.configs)
 		if err != nil {
 			log.Error("Incorrect request format ")
 			return
@@ -213,17 +233,9 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 		}
 		if mode == "manifest_state" {
 			manifest.AppState = *fc.appLifecycle.GetAllStates()
-			log.Debug(manifest.AppState)
 			fc.configs.ConnectionState = string(fc.appLifecycle.ConnectionState())
-
-			fc.configs.Errors = fc.appLifecycle.GetAllStates().LastErrorText
-			confstate := make(map[string]interface{})
-			// manifest.ConfigState = make(map[string]interface{})
-			confstate["configured_at"] = fc.state.ConfiguredAt
-			confstate["configured_by"] = fc.state.ConfiguredBy
-			confstate["connected"] = fc.state.Connected
-			confstate["access_token"] = fc.state.APIkey
-			manifest.ConfigState = confstate
+			fc.configs.Errors = fc.appLifecycle.LastError()
+			manifest.ConfigState = fc.state
 		}
 
 		if errConf := manifest.GetAppConfig("errors"); errConf != nil {
@@ -233,34 +245,38 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 				errConf.Hidden = false
 			}
 		}
-		connectButton := manifest.GetButton("connect")
-		disconnectButton := manifest.GetButton("disconnect")
-		if connectButton != nil && disconnectButton != nil {
-			if fc.appLifecycle.ConnectionState() == edgeapp.ConnStateConnected {
-				connectButton.Hidden = true
-				disconnectButton.Hidden = false
+		fanConfig := manifest.GetAppConfig("fan_ctrl")
+		modeConfig := manifest.GetAppConfig("mode")
+		fanConfig.Val.Default = fc.state.FanMode
+		modeConfig.Val.Default = fc.state.Mode
+
+		fanCtrlBlock := manifest.GetUIBlock("fan_ctrl")
+		modeBlock := manifest.GetUIBlock("mode")
+
+		if fanCtrlBlock != nil && modeBlock != nil {
+			if fc.state.Pods != nil {
+				fanCtrlBlock.Hidden = false
+				modeBlock.Hidden = false
 			} else {
-				connectButton.Hidden = false
-				disconnectButton.Hidden = true
+				fanCtrlBlock.Hidden = true
+				modeBlock.Hidden = true
 			}
 		}
+
 		if syncButton := manifest.GetButton("sync"); syncButton != nil {
 			if fc.appLifecycle.ConnectionState() == edgeapp.ConnStateConnected {
 				syncButton.Hidden = false
 			} else {
-				syncButton.Hidden = true
+				syncButton.Hidden = false
 			}
 		}
-		connBlock := manifest.GetUIBlock("connect")
-		settingsBlock := manifest.GetUIBlock("settings")
-		if connBlock != nil && settingsBlock != nil {
-			if fc.state.Pods != nil {
-				connBlock.Hidden = false
-				settingsBlock.Hidden = false
-			} else {
-				connBlock.Hidden = true
-				settingsBlock.Hidden = true
-			}
+
+		if env == utils.EnvBeta {
+			manifest.Auth.AuthEndpoint = "https://partners-beta.futurehome.io/api/edge/proxy/custom/auth-code"
+			manifest.Auth.RedirectURL = "https://app-static-beta.futurehome.io/playground_oauth_callback"
+		} else {
+			manifest.Auth.AuthEndpoint = "https://app-static.futurehome.io/playground_oauth_callback"
+			manifest.Auth.RedirectURL = "https://partners.futurehome.io/api/edge/proxy/custom/auth-code"
 		}
 		msg := fimpgo.NewMessage("evt.app.manifest_report", "sensibo", fimpgo.VTypeObject, manifest, nil, nil, newMsg.Payload)
 		adr := &fimpgo.Address{MsgType: "rsp", ResourceType: "cloud", ResourceName: "remote-client", ResourceAddress: "smarthome-app"}
@@ -291,5 +307,26 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			humid := measurements[0].Humidity
 			fc.sendHumidityMsg(address, humid, newMsg.Payload)
 		}
+	case "cmd.thing.delete":
+		// remove device from network
+		val, err := newMsg.Payload.GetStrMapValue()
+		if err != nil {
+			log.Error("Wrong msg format")
+			return
+		}
+		deviceID := val["address"]
+		exists := 9999
+		for i := 0; i < len(fc.state.Pods); i++ {
+			podID := fc.state.Pods[i].ID
+			if deviceID == podID {
+				exists = i
+			}
+		}
+		if exists != 9999 {
+			fc.sendExclusionReport(deviceID, newMsg.Payload)
+		}
+
 	}
+	fc.state.SaveToFile()
+	fc.configs.SaveToFile()
 }
