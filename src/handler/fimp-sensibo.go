@@ -111,8 +111,9 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			fc.appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
 			return
 		}
+
 		log.Debug(fc.state.APIkey)
-		// This does not work for some reason
+		// Message below is sent in fimp, but the app still reacts with "Something is wrong, please try again."
 		if fc.state.APIkey != "" && fc.state.APIkey != "access_token" {
 			loginval := map[string]interface{}{
 				"errors":  nil,
