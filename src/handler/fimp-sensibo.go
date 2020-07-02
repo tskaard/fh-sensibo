@@ -112,38 +112,7 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			return
 		}
 
-		log.Debug(fc.state.APIkey)
-		// Message below is sent in fimp, but the app still reacts with "Something is wrong, please try again."
-		if fc.state.APIkey != "" && fc.state.APIkey != "access_token" {
-			loginval := map[string]interface{}{
-				"errors":  nil,
-				"success": true,
-			}
-			newadr, err := fimpgo.NewAddressFromString("pt:j1/mt:rsp/rt:cloud/rn:remote-client/ad:smarthome-app")
-			if err != nil {
-				log.Debug("Could not make login response topic")
-			}
-			respMsg := fimpgo.NewMessage("evt.pd7.response", "vinculum", fimpgo.VTypeStrMap, loginval, nil, nil, newMsg.Payload)
-			respMsg.CorrelationID = newMsg.Payload.UID
-			fc.mqt.Publish(newadr, respMsg)
-		}
-		//  else {
-		// 	loginval := map[string]interface{}{
-		// 		"errors":  nil,
-		// 		"success": false,
-		// 	}
-		// 	newadr, err := fimpgo.NewAddressFromString("pt:j1/mt:rsp/rt:cloud/rn:remote-client/ad:smarthome-app")
-		// 	if err != nil {
-		// 		log.Debug("Could not make login response topic")
-		// 	}
-		// 	respMsg := fimpgo.NewMessage("evt.pd7.response", "vinculum", fimpgo.VTypeObject, loginval, nil, nil, newMsg.Payload)
-		// 	respMsg.CorrelationID = newMsg.Payload.UID
-		// 	fc.mqt.Publish(newadr, respMsg)
-		// }
-
 		fc.systemConnect(newMsg)
-		fc.systemGetConnectionParameter(newMsg)
-		fc.systemSync(newMsg)
 		fc.getAuthStatus(newMsg)
 
 		fc.configs.SaveToFile()
@@ -182,6 +151,7 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			AppState: *fc.appLifecycle.GetAllStates(),
 		}
 		msg := fimpgo.NewMessage("evt.app.config_report", model.ServiceName, fimpgo.VTypeObject, configReport, nil, nil, newMsg.Payload)
+		msg.Source = "sensibo"
 		if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
 			log.Debug("cant respond to wanted topic")
 		}
@@ -280,6 +250,7 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			manifest.Auth.RedirectURL = "https://partners.futurehome.io/api/edge/proxy/custom/auth-code"
 		}
 		msg := fimpgo.NewMessage("evt.app.manifest_report", "sensibo", fimpgo.VTypeObject, manifest, nil, nil, newMsg.Payload)
+		msg.Source = "sensibo"
 		adr := &fimpgo.Address{MsgType: "rsp", ResourceType: "cloud", ResourceName: "remote-client", ResourceAddress: "smarthome-app"}
 		if fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
 			fc.mqt.Publish(adr, msg)

@@ -64,8 +64,8 @@ func main() {
 	err = states.LoadFromFile()
 	if err != nil {
 		appLifecycle.SetConfigState(edgeapp.ConfigStateNotConfigured)
-		log.Debug("Not able to load state")
-		log.Debug(err)
+		fmt.Print(err)
+		panic("Not able to load state")
 	}
 	utils.SetupLog(configs.LogFile, configs.LogLevel, configs.LogFormat)
 	log.Info("--------------Starting sensibo----------------")

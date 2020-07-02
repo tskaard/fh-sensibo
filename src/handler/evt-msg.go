@@ -12,6 +12,7 @@ func (fc *FimpSensiboHandler) sendTemperatureMsg(addr string, temp float64, oldM
 	props := make(map[string]string)
 	props["unit"] = "C"
 	msg := fimpgo.NewMessage("evt.sensor.report", "sensor_temp", "float", temp, props, nil, oldMsg)
+	msg.Source = "sensibo"
 	adr, _ := fimpgo.NewAddressFromString("pt:j1/mt:evt/rt:dev/rn:sensibo/ad:1/sv:sensor_temp/ad:" + addr)
 	fc.mqt.Publish(adr, msg)
 	log.Debug("Temperature message sent")
@@ -21,6 +22,7 @@ func (fc *FimpSensiboHandler) sendHumidityMsg(addr string, humid float64, oldMsg
 	props := make(map[string]string)
 	props["unit"] = "%"
 	msg := fimpgo.NewMessage("evt.sensor.report", "sensor_humid", "float", humid, props, nil, oldMsg)
+	msg.Source = "sensibo"
 	adr, _ := fimpgo.NewAddressFromString("pt:j1/mt:evt/rt:dev/rn:sensibo/ad:1/sv:sensor_humid/ad:" + addr)
 	fc.mqt.Publish(adr, msg)
 	log.Debug("Humidity message sent")
@@ -28,6 +30,7 @@ func (fc *FimpSensiboHandler) sendHumidityMsg(addr string, humid float64, oldMsg
 
 func (fc *FimpSensiboHandler) sendThermostatModeMsg(addr string, mode string, oldMsg *fimpgo.FimpMessage) {
 	msg := fimpgo.NewStringMessage("evt.mode.report", "thermostat", mode, nil, nil, oldMsg)
+	msg.Source = "sensibo"
 	adr, _ := fimpgo.NewAddressFromString("pt:j1/mt:evt/rt:dev/rn:sensibo/ad:1/sv:thermostat/ad:" + addr)
 	fc.mqt.Publish(adr, msg)
 	log.Debug("Thermostat mode message sent")
@@ -35,6 +38,7 @@ func (fc *FimpSensiboHandler) sendThermostatModeMsg(addr string, mode string, ol
 
 func (fc *FimpSensiboHandler) sendFanCtrlMsg(addr string, fanMode string, oldMsg *fimpgo.FimpMessage) {
 	msg := fimpgo.NewStringMessage("evt.mode.report", "fan_ctrl", fanMode, nil, nil, oldMsg)
+	msg.Source = "sensibo"
 	adr, _ := fimpgo.NewAddressFromString("pt:j1/mt:evt/rt:dev/rn:sensibo/ad:1/sv:fan_ctrl/ad:" + addr)
 	fc.mqt.Publish(adr, msg)
 	log.Debug("Fan ctrl mode message sent")
@@ -48,6 +52,7 @@ func (fc *FimpSensiboHandler) sendSetpointMsg(addr string, acState sensibo.AcSta
 		val["unit"] = acState.TemperatureUnit
 	}
 	msg := fimpgo.NewStrMapMessage("evt.setpoint.report", "thermostat", val, nil, nil, oldMsg)
+	msg.Source = "sensibo"
 	adr, _ := fimpgo.NewAddressFromString("pt:j1/mt:evt/rt:dev/rn:sensibo/ad:1/sv:thermostat/ad:" + addr)
 	fc.mqt.Publish(adr, msg)
 	log.Debug("Thermostat setpoint message sent")

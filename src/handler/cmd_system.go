@@ -29,9 +29,12 @@ func (fc *FimpSensiboHandler) systemSync(oldMsg *fimpgo.Message) {
 func (fc *FimpSensiboHandler) getAuthStatus(oldMsg *fimpgo.Message) {
 	log.Debug("cmd.auth.set_tokens")
 	val := fc.appLifecycle.GetAllStates()
+
 	msg := fimpgo.NewMessage("evt.auth.status_report", "sensibo", fimpgo.VTypeObject, val, nil, nil, oldMsg.Payload)
-	adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sensibo", ResourceAddress: "1"}
-	fc.mqt.Publish(adr, msg)
+	msg.Source = "sensibo"
+	if err := fc.mqt.RespondToRequest(oldMsg.Payload, msg); err != nil {
+		log.Error("Could not respond to wanted request")
+	}
 }
 
 func (fc *FimpSensiboHandler) systemDisconnect(msg *fimpgo.Message) {
@@ -65,6 +68,7 @@ func (fc *FimpSensiboHandler) systemDisconnect(msg *fimpgo.Message) {
 		"success": true,
 	}
 	newMsg := fimpgo.NewMessage("evt.pd7.response", "vinculum", fimpgo.VTypeObject, val2, nil, nil, msg.Payload)
+	newMsg.Source = "sensibo"
 	if err := fc.mqt.RespondToRequest(msg.Payload, newMsg); err != nil {
 		log.Error("Could not respond to wanted request")
 	}
@@ -82,7 +86,8 @@ func (fc *FimpSensiboHandler) systemGetConnectionParameter(oldMsg *fimpgo.Messag
 	} else {
 		val["access_token"] = "api_key"
 	}
-	msg := fimpgo.NewStrMapMessage("evt.system.connect_params_report", "sensibo", val, nil, nil, oldMsg.Payload)
+	msg := fimpgo.NewStrMapMessage("evt.system.connect_params_report", "sensibo", val, nil, nil, nil)
+	msg.Source = "sensibo"
 	adr := fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sensibo", ResourceAddress: "1"}
 	fc.mqt.Publish(&adr, msg)
 	log.Debug("Connect params message sent")

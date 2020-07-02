@@ -113,7 +113,7 @@ func (fc *FimpSensiboHandler) sendInclusionReport(pod sensibo.Pod, oldMsg *fimpg
 		DeviceId:       pod.MacAddress,
 	}
 
-	msg := fimpgo.NewMessage("evt.thing.inclusion_report", "sensibo", "object", incReort, nil, nil, oldMsg)
+	msg := fimpgo.NewMessage("evt.thing.inclusion_report", "sensibo", "object", incReort, nil, nil, nil)
 	adr := fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sensibo", ResourceAddress: "1"}
 	fc.mqt.Publish(&adr, msg)
 	log.Debug("Inclusion report sent")

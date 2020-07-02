@@ -11,6 +11,7 @@ func (fc *FimpSensiboHandler) sendExclusionReport(addr string, oldMsg *fimpgo.Fi
 		Address: addr,
 	}
 	msg := fimpgo.NewMessage("evt.thing.exclusion_report", "sensibo", "object", exReport, nil, nil, oldMsg)
+	msg.Source = "sensibo"
 	adr := fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sensibo", ResourceAddress: "1"}
 	fc.mqt.Publish(&adr, msg)
 	log.Debug("Exclusion report sent")
