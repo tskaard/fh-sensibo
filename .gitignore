@@ -1,3 +1,16 @@
 .DS_Store
+sensibo
+*.exe
+
+
+# Debian packaging
+VERSION
+control
+*.deb
+package/build
+
+# IDE
+.idea
+.vscode
 
 src/testdata
