@@ -25,12 +25,21 @@ type FimpSensiboHandler struct {
 	ticker       *time.Ticker
 	configs      model.Configs
 	appLifecycle *edgeapp.Lifecycle
+	env          string
 }
 
 // NewFimpSensiboHandler construct new handler
 func NewFimpSensiboHandler(transport *fimpgo.MqttTransport, stateFile string, appLifecycle *edgeapp.Lifecycle) *FimpSensiboHandler {
 	fc := &FimpSensiboHandler{inboundMsgCh: make(fimpgo.MessageCh, 5), mqt: transport, appLifecycle: appLifecycle}
 	fc.mqt.RegisterChannel("ch1", fc.inboundMsgCh)
+
+	hubInfo, err := utils.NewHubUtils().GetHubInfo()
+	if err == nil && hubInfo != nil {
+		fc.env = hubInfo.Environment
+	} else {
+		fc.env = utils.EnvBeta
+	}
+
 	fc.api = sensibo.NewSensibo("")
 	fc.db, _ = scribble.New(stateFile, nil)
 	fc.state = model.State{}
@@ -183,13 +192,6 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 	//case "cmd.state.get_report":
 
 	case "cmd.app.get_manifest":
-		var env string
-		hubInfo, err := utils.NewHubUtils().GetHubInfo()
-		if err == nil && hubInfo != nil {
-			env = hubInfo.Environment
-		} else {
-			env = utils.EnvBeta
-		}
 
 		mode, err := newMsg.Payload.GetStringValue()
 		if err != nil {
@@ -242,13 +244,14 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			}
 		}
 
-		if env == utils.EnvBeta {
+		if fc.env == utils.EnvBeta {
 			manifest.Auth.AuthEndpoint = "https://partners-beta.futurehome.io/api/edge/proxy/custom/auth-code"
 			manifest.Auth.RedirectURL = "https://app-static-beta.futurehome.io/playground_oauth_callback"
 		} else {
-			manifest.Auth.AuthEndpoint = "https://app-static.futurehome.io/playground_oauth_callback"
-			manifest.Auth.RedirectURL = "https://partners.futurehome.io/api/edge/proxy/custom/auth-code"
+			manifest.Auth.AuthEndpoint = "https://partners.futurehome.io/api/edge/proxy/custom/auth-code"
+			manifest.Auth.RedirectURL = "https://app-static.futurehome.io/playground_oauth_callback"
 		}
+
 		msg := fimpgo.NewMessage("evt.app.manifest_report", "sensibo", fimpgo.VTypeObject, manifest, nil, nil, newMsg.Payload)
 		msg.Source = "sensibo"
 		adr := &fimpgo.Address{MsgType: "rsp", ResourceType: "cloud", ResourceName: "remote-client", ResourceAddress: "smarthome-app"}

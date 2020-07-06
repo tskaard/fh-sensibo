@@ -2,7 +2,7 @@
   "configs":[
     {
       "id": "fan_ctrl",
-      "label": {"en": "Fan controll"},
+      "label": {"en": "Fan control"},
       "val_t": "string",
       "ui": {
         "type": "select_horizontal",
@@ -46,7 +46,7 @@
   "ui_blocks": [
     {
       "id": "fan_ctrl",
-      "header": {"en": "fan controll"},
+      "header": {"en": "fan control"},
       "text": {"en": ""},
       "configs": ["fan_ctrl"],
       "buttons": [],
@@ -55,7 +55,7 @@
     },
     {
       "id": "mode",
-      "header": {"en": "mode controll"},
+      "header": {"en": "mode control"},
       "text": {"en": ""},
       "configs": ["mode"],
       "buttons": [],

@@ -7,8 +7,6 @@ import (
 
 	"github.com/futurehomeno/fimpgo/edgeapp"
 
-	"github.com/tskaard/sensibo/utils"
-
 	"github.com/futurehomeno/fimpgo"
 	log "github.com/sirupsen/logrus"
 	"github.com/tskaard/sensibo/handler"
@@ -67,7 +65,7 @@ func main() {
 		fmt.Print(err)
 		panic("Not able to load state")
 	}
-	utils.SetupLog(configs.LogFile, configs.LogLevel, configs.LogFormat)
+	SetupLog(configs.LogFile, configs.LogLevel, configs.LogFormat)
 	log.Info("--------------Starting sensibo----------------")
 	appLifecycle.SetAppState(edgeapp.AppStateStarting, nil)
 	appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
