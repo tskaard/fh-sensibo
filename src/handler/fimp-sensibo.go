@@ -37,7 +37,7 @@ func NewFimpSensiboHandler(transport *fimpgo.MqttTransport, stateFile string, ap
 	if err == nil && hubInfo != nil {
 		fc.env = hubInfo.Environment
 	} else {
-		fc.env = utils.EnvBeta
+		fc.env = utils.EnvProd
 	}
 
 	fc.api = sensibo.NewSensibo("")
