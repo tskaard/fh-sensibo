@@ -68,6 +68,9 @@ func (fc *FimpSensiboHandler) Start(pollTimeSec int) error {
 	}(fc.inboundMsgCh)
 	// Setting up ticker to poll information from cloud
 	fc.ticker = time.NewTicker(time.Second * time.Duration(pollTimeSec))
+	var oldTemp float64
+	var oldHumid float64
+	var oldState sensibo.AcState
 	go func() {
 		for range fc.ticker.C {
 			// Check if app is connected
@@ -80,9 +83,17 @@ func (fc *FimpSensiboHandler) Start(pollTimeSec int) error {
 						break
 					}
 					temp := measurements[0].Temperature
-					fc.sendTemperatureMsg(pod.ID, temp, nil)
+					if oldTemp != temp {
+						fc.sendTemperatureMsg(pod.ID, temp, nil)
+						log.Info("New temp msg sent")
+						oldTemp = temp
+					}
 					humid := measurements[0].Humidity
-					fc.sendHumidityMsg(pod.ID, humid, nil)
+					if oldHumid != humid {
+						fc.sendHumidityMsg(pod.ID, humid, nil)
+						log.Info("New humid msg sent")
+						oldHumid = humid
+					}
 
 					states, err := fc.api.GetAcStates(pod.ID, fc.api.Key)
 					if err != nil {
@@ -90,7 +101,11 @@ func (fc *FimpSensiboHandler) Start(pollTimeSec int) error {
 						break
 					}
 					state := states[0].AcState
-					fc.sendAcState(pod.ID, state, nil)
+					if oldState != state {
+						fc.sendAcState(pod.ID, state, nil)
+						log.Info("New AcState msg sent")
+						oldState = state
+					}
 				}
 				// Get measurements and acState from all units
 			} else {
