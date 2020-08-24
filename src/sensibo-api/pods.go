@@ -27,6 +27,9 @@ type Pod struct {
 	MacAddress         string             `json:"macAddress"`
 	ProductModel       string             `json:"productModel"`
 	RemoteCapabilities RemoteCapabilities `json:"remoteCapabilities"`
+	OldTemp            float64            `json:"oldTemp"`
+	OldHumid           float64            `json:"oldHumid"`
+	OldState           AcState            `json:"oldState"`
 }
 
 type PodResult struct {

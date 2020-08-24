@@ -68,31 +68,33 @@ func (fc *FimpSensiboHandler) Start(pollTimeSec int) error {
 	}(fc.inboundMsgCh)
 	// Setting up ticker to poll information from cloud
 	fc.ticker = time.NewTicker(time.Second * time.Duration(pollTimeSec))
-	var oldTemp float64
-	var oldHumid float64
-	var oldState sensibo.AcState
 	go func() {
 		for range fc.ticker.C {
 			// Check if app is connected
 			// ADD timer from config
 			if fc.state.Connected {
-				for _, pod := range fc.state.Pods {
+				for i, pod := range fc.state.Pods {
 					measurements, err := fc.api.GetMeasurements(pod.ID, fc.api.Key)
 					if err != nil {
 						log.Error("Cannot get measurements from device")
 						break
 					}
 					temp := measurements[0].Temperature
-					if oldTemp != temp {
+					log.Debug("temp, ", temp)
+					log.Debug("oldTemp, ", fc.state.Pods[i].OldTemp)
+					if fc.state.Pods[i].OldTemp != temp {
+
 						fc.sendTemperatureMsg(pod.ID, temp, nil)
 						log.Info("New temp msg sent")
-						oldTemp = temp
+						fc.state.Pods[i].OldTemp = temp
 					}
 					humid := measurements[0].Humidity
-					if oldHumid != humid {
+					log.Debug("humid, ", humid)
+					log.Debug("oldHumid, ", fc.state.Pods[i].OldHumid)
+					if fc.state.Pods[i].OldHumid != humid {
 						fc.sendHumidityMsg(pod.ID, humid, nil)
 						log.Info("New humid msg sent")
-						oldHumid = humid
+						fc.state.Pods[i].OldHumid = humid
 					}
 
 					states, err := fc.api.GetAcStates(pod.ID, fc.api.Key)
@@ -101,14 +103,17 @@ func (fc *FimpSensiboHandler) Start(pollTimeSec int) error {
 						break
 					}
 					state := states[0].AcState
-					if oldState != state {
+					log.Debug("state, ", state)
+					log.Debug("oldState, ", fc.state.Pods[i].OldState)
+					if pod.OldState != state {
 						fc.sendAcState(pod.ID, state, nil)
 						log.Info("New AcState msg sent")
-						oldState = state
+						fc.state.Pods[i].OldState = state
 					}
 				}
 				// Get measurements and acState from all units
 			} else {
+
 				log.Debug("------- NOT CONNECTED -------")
 				// Do nothing
 			}
