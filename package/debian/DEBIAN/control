@@ -1,7 +1,7 @@
 Package: sensibo
-Version: 1.2.0
+Version: 1.3.4
 Section: non-free/misc
 Priority: optional
 Architecture: armhf
-Maintainer: Tor Erik Skaardal <skardal@me.com>
+Maintainer: Tor Erik Skaardal <skardal@hey.com>
 Description: Control Sensibo Sky from futurehome.

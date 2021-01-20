@@ -118,7 +118,7 @@ func (fc *FimpSensiboHandler) systemConnect(oldMsg *fimpgo.Message) {
 	for _, pod := range pods {
 		log.Debug(pod.ID)
 		log.Debug(pod.ProductModel)
-		if pod.ProductModel != "skyv2" {
+		if pod.ProductModel != "skyv2" && pod.ProductModel != "skyplus" {
 			return
 		}
 		fc.state.Pods = append(fc.state.Pods, pod)

@@ -68,6 +68,27 @@ func buildThermostatService(pod sensibo.Pod) fimptype.Service {
 	return thermostatService
 }
 
+// func buildPresenceService(pod sensibo.Pod) fimptype.Service {
+// 	evtPresenceReport := buildInterface("out", "evt.presence.report", "bool", "1")
+// 	cmdPresenceGetReport := buildInterface("in", "evt.presence.get_report", "null", "1")
+
+// 	presenceInterfaces := []fimptype.Interface{}
+// 	presenceInterfaces = append(
+// 		presenceInterfaces, evtPresenceReport, cmdPresenceGetReport,
+// 	)
+
+// 	presenceService := fimptype.Service{
+// 		Address:    "/rt:dev/rn:sensibo/ad:1/sv:sensor_presence/ad:" + pod.ID,
+// 		Name:       "sensor_presence",
+// 		Groups:     []string{"ch_0"},
+// 		Alias:      "sensor_presence",
+// 		Enabled:    true,
+// 		Props:      nil,
+// 		Interfaces: presenceInterfaces,
+// 	}
+// 	return presenceService
+// }
+
 func buildFanCtrlService(pod sensibo.Pod) fimptype.Service {
 	cmdModeSet := buildInterface("in", "cmd.mode.set", "string", "1")
 	cmdModeGetReport := buildInterface("in", "cmd.mode.get_report", "null", "1")
@@ -95,17 +116,26 @@ func (fc *FimpSensiboHandler) sendInclusionReport(pod sensibo.Pod, oldMsg *fimpg
 
 	tempSensorService := buildSensorService(pod.ID, "sensor_temp", []string{"C"}, "temperature")
 	humidSensorService := buildSensorService(pod.ID, "sensor_humid", []string{"%"}, "humidity")
-
 	thermostatService := buildThermostatService(pod)
 	fanCtrlService := buildFanCtrlService(pod)
-
 	services := []fimptype.Service{}
+
+	productName := ""
+	if pod.ProductModel == "skyplus" {
+		// presenceService := buildPresenceService(pod)
+		// services = append(services, tempSensorService, humidSensorService, thermostatService, fanCtrlService, presenceService)
+		productName = "Sensibo Air"
+	} else {
+		// services = append(services, tempSensorService, humidSensorService, thermostatService, fanCtrlService)
+		productName = "Sensibo Sky"
+	}
 	services = append(services, tempSensorService, humidSensorService, thermostatService, fanCtrlService)
+
 	incReort := fimptype.ThingInclusionReport{
 		Address:        pod.ID,
 		HwVersion:      pod.ProductModel,
 		CommTechnology: "http",
-		ProductName:    "Sensibo Sky",
+		ProductName:    productName,
 		Groups:         []string{"ch_0"},
 		Services:       services,
 		Alias:          pod.Room.Name,
