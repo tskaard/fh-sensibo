@@ -155,6 +155,10 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 		fc.systemDisconnect(newMsg)
 		fc.state.SaveToFile()
 
+	case "cmd.app.uninstall":
+		fc.systemDisconnect(newMsg)
+		fc.state.SaveToFile()
+
 	case "cmd.config.extended_set":
 		err := newMsg.Payload.GetObjectValue(&fc.state)
 		if err != nil {
