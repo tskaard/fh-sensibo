@@ -4,6 +4,6 @@ set -e
 if [ -d /run/systemd/system ] && [ "$1" = remove ]; then
   deb-systemd-invoke stop sensibo.service >/dev/null
   systemctl disable sensibo.service || true
-  rm /var/log/thingsplex/sensibo/* || true
-  rm /opt/thingsplex/sensibo/data/* || true
+  rm -r /var/log/thingsplex/sensibo/ || true
+  rm -r /opt/thingsplex/sensibo/data/ || true
 fi
