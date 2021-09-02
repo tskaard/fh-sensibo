@@ -6,7 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (fc *FimpSensiboHandler) systemSync(oldMsg *fimpgo.Message) {
+func (fc *FimpSensiboHandler) systemSync(oldMsg *fimpgo.Message) bool {
 	pods, err := fc.api.GetPods(fc.api.Key)
 	if err != nil {
 		log.Error("Can't get pods from Sensibo")
@@ -15,7 +15,7 @@ func (fc *FimpSensiboHandler) systemSync(oldMsg *fimpgo.Message) {
 	log.Debug("cmd.system.sync")
 	if !fc.state.Connected || fc.state.APIkey == "" {
 		log.Error("Ad is not connected, not able to sync")
-		return
+		return false
 	}
 	fc.appLifecycle.SetConnectionState(edgeapp.ConnStateConnecting)
 	for _, pod := range fc.state.Pods {
@@ -24,11 +24,17 @@ func (fc *FimpSensiboHandler) systemSync(oldMsg *fimpgo.Message) {
 	}
 	fc.appLifecycle.SetConnectionState(edgeapp.ConnStateConnected)
 	log.Info("System synced")
+	return true
 }
 
 func (fc *FimpSensiboHandler) getAuthStatus(oldMsg *fimpgo.Message) {
 	log.Debug("cmd.auth.set_tokens")
-	val := fc.appLifecycle.GetAllStates()
+	states := fc.appLifecycle.GetAllStates()
+	val := map[string]interface{}{
+		"status":     states.Auth,
+		"error_text": "",
+		"error_code": "",
+	}
 
 	msg := fimpgo.NewMessage("evt.auth.status_report", "sensibo", fimpgo.VTypeObject, val, nil, nil, oldMsg.Payload)
 	msg.Source = "sensibo"
@@ -128,9 +134,13 @@ func (fc *FimpSensiboHandler) systemConnect(oldMsg *fimpgo.Message) {
 	if fc.state.APIkey != "" {
 		fc.state.Connected = true
 		fc.appLifecycle.SetAuthState(edgeapp.AuthStateAuthenticated)
+		fc.appLifecycle.SetConnectionState(edgeapp.ConnStateConnected)
+		fc.appLifecycle.SetConfigState(edgeapp.ConfigStateConfigured)
 	} else {
 		fc.state.Connected = false
 		fc.appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
+		fc.appLifecycle.SetConnectionState(edgeapp.ConnStateDisconnected)
+		fc.appLifecycle.SetConfigState(edgeapp.ConfigStateNotConfigured)
 	}
 
 	if err := fc.db.Write("data", "state", fc.state); err != nil {

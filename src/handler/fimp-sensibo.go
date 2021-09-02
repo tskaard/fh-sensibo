@@ -197,7 +197,29 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 		fc.state.SaveToFile()
 
 	case "cmd.system.sync":
-		fc.systemSync(newMsg)
+		var val model.ButtonActionResponse
+		if fc.systemSync(newMsg) {
+			val = model.ButtonActionResponse{
+				Operation:       "cmd.system.sync",
+				OperationStatus: "ok",
+				Next:            "reload",
+				ErrorCode:       "",
+				ErrorText:       "",
+			}
+			log.Info("All devices synced")
+		} else {
+			val = model.ButtonActionResponse{
+				Operation:       "cmd.system.sync",
+				OperationStatus: "err",
+				Next:            "reload",
+				ErrorCode:       "",
+				ErrorText:       "Sensibo is not connected",
+			}
+		}
+		msg := fimpgo.NewMessage("evt.app.config_action_report", model.ServiceName, fimpgo.VTypeObject, val, nil, nil, newMsg.Payload)
+		if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
+			log.Error("Could not respond to wanted request")
+		}
 
 	case "cmd.setpoint.set":
 		fc.setpointSet(newMsg)
@@ -249,23 +271,16 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 
 		fanCtrlBlock := manifest.GetUIBlock("fan_ctrl")
 		modeBlock := manifest.GetUIBlock("mode")
+		syncButton := manifest.GetButton("sync")
 
-		if fanCtrlBlock != nil && modeBlock != nil {
-			if fc.state.Pods != nil {
-				fanCtrlBlock.Hidden = false
-				modeBlock.Hidden = false
-			} else {
-				fanCtrlBlock.Hidden = true
-				modeBlock.Hidden = true
-			}
-		}
-
-		if syncButton := manifest.GetButton("sync"); syncButton != nil {
-			if fc.appLifecycle.ConnectionState() == edgeapp.ConnStateConnected {
-				syncButton.Hidden = false
-			} else {
-				syncButton.Hidden = false
-			}
+		if fc.appLifecycle.ConnectionState() == edgeapp.ConnStateConnected {
+			fanCtrlBlock.Hidden = false
+			modeBlock.Hidden = false
+			syncButton.Hidden = false
+		} else {
+			fanCtrlBlock.Hidden = true
+			modeBlock.Hidden = true
+			syncButton.Hidden = true
 		}
 
 		if fc.env == utils.EnvBeta {
