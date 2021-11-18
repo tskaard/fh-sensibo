@@ -7,7 +7,8 @@ import (
 )
 
 func (fc *FimpSensiboHandler) systemSync(oldMsg *fimpgo.Message) bool {
-	pods, err := fc.api.GetPods(fc.api.Key)
+	// pods, err := fc.api.GetPods(fc.api.Key)
+	pods, err := fc.api.GetPodsV1(fc.api.Key)
 	if err != nil {
 		log.Error("Can't get pods from Sensibo")
 	}
@@ -101,11 +102,6 @@ func (fc *FimpSensiboHandler) systemGetConnectionParameter(oldMsg *fimpgo.Messag
 
 func (fc *FimpSensiboHandler) systemConnect(oldMsg *fimpgo.Message) {
 	log.Debug("cmd.system.connect")
-	if fc.state.Connected {
-		log.Error("App is already connected with system")
-		fc.appLifecycle.SetAppState(edgeapp.AppStateRunning, nil)
-		return
-	}
 	if fc.state.APIkey == "" {
 		log.Error("Did not get a security_key")
 		fc.appLifecycle.SetAuthState(edgeapp.AuthStateNotAuthenticated)
@@ -113,7 +109,8 @@ func (fc *FimpSensiboHandler) systemConnect(oldMsg *fimpgo.Message) {
 	}
 
 	fc.api.Key = fc.state.APIkey
-	pods, err := fc.api.GetPods(fc.api.Key)
+	// pods, err := fc.api.GetPods(fc.api.Key)
+	pods, err := fc.api.GetPodsV1(fc.api.Key)
 	if err != nil {
 		log.Error("Cannot get pods information from Sensibo - ", err)
 		fc.api.Key = ""

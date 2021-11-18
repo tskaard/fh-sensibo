@@ -83,3 +83,13 @@ func (s *Sensibo) resourceUrl(resource string, values url.Values) string {
 	}
 	return fullUrl.String()
 }
+
+func (s *Sensibo) resourceUrlV1(resource string, values url.Values) string {
+	fullUrl := &url.URL{
+		Scheme:   "https",
+		Host:     "home.sensibo.com",
+		Path:     fmt.Sprintf("/api/v1/%v", resource),
+		RawQuery: values.Encode(),
+	}
+	return fullUrl.String()
+}

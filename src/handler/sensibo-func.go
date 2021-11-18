@@ -8,7 +8,8 @@ import (
 	sensibo "github.com/tskaard/sensibo/sensibo-api"
 )
 
-func checkSupportedFanMode(pod sensibo.Pod, mode string) bool {
+// func checkSupportedFanMode(pod sensibo.Pod, mode string) bool {
+func checkSupportedFanMode(pod sensibo.PodV1, mode string) bool {
 	supported := false
 	fanModes := getSupportedFanModes(pod)
 	for _, m := range fanModes {
@@ -19,7 +20,8 @@ func checkSupportedFanMode(pod sensibo.Pod, mode string) bool {
 	return supported
 }
 
-func getSupportedFanModes(pod sensibo.Pod) []string {
+// func getSupportedFanModes(pod sensibo.Pod) []string {
+func getSupportedFanModes(pod sensibo.PodV1) []string {
 	fimpModes := []string{"medium", "auto", "auto_low", "auto_high", "auto_mid", "low", "high", "mid", "humid_circulation", "up_down", "left_right", "quiet"}
 	// sensibo "quiet", "low", "medium", "medium_high", "high", "auto"
 	var fanModes []string
@@ -45,15 +47,18 @@ func getSupportedFanModes(pod sensibo.Pod) []string {
 	return fanModes
 }
 
-func getSupportedModes(pod sensibo.Pod) []string {
+// func getSupportedModes(pod sensibo.Pod) []string {
+func getSupportedModes(pod sensibo.PodV1) []string {
 	var modes []string
 	for acMode := range pod.RemoteCapabilities.Modes {
 		modes = append(modes, acMode)
 	}
+	modes = append(modes, "off") // add supported mode "off" to all sensibo pods
 	return modes
 }
 
-func getSupportedSetpoints(pod sensibo.Pod) []string {
+// func getSupportedSetpoints(pod sensibo.Pod) []string {
+func getSupportedSetpoints(pod sensibo.PodV1) []string {
 	var modes []string
 	for acMode, acValue := range pod.RemoteCapabilities.Modes {
 		if acMapValue, ok := acValue.(map[string]interface{}); ok {
@@ -81,7 +86,8 @@ func getSupportedSetpoints(pod sensibo.Pod) []string {
 	return modes
 }
 
-func checkSupportedSetpointMode(pod sensibo.Pod, mode string) bool {
+// func checkSupportedSetpointMode(pod sensibo.Pod, mode string) bool {
+func checkSupportedSetpointMode(pod sensibo.PodV1, mode string) bool {
 	supported := false
 	modes := getModes(pod)
 	for _, m := range modes {
@@ -92,7 +98,8 @@ func checkSupportedSetpointMode(pod sensibo.Pod, mode string) bool {
 	return supported
 }
 
-func getModes(p sensibo.Pod) []string {
+// func getModes(p sensibo.Pod) []string {
+func getModes(p sensibo.PodV1) []string {
 	var modes []string
 	for acMode := range p.RemoteCapabilities.Modes {
 		modes = append(modes, acMode)
@@ -100,7 +107,8 @@ func getModes(p sensibo.Pod) []string {
 	return modes
 }
 
-func getSupportedSetpoint(pod sensibo.Pod, value map[string]string) int {
+// func getSupportedSetpoint(pod sensibo.Pod, value map[string]string) int {
+func getSupportedSetpoint(pod sensibo.PodV1, value map[string]string) int {
 	var temperature int
 	tempF, err := strconv.ParseFloat(value["temp"], 64)
 	if err != nil {
@@ -108,7 +116,7 @@ func getSupportedSetpoint(pod sensibo.Pod, value map[string]string) int {
 		return 0
 	}
 	temp := int(math.Round(tempF))
-	temps := getSupportedTempRange(pod, value)
+	temps := getSupportedTempRangeV1(pod, value)
 	if temp <= temps[0] {
 		temperature = temps[0]
 	} else if temp >= temps[len(temps)-1] {
@@ -122,6 +130,34 @@ func getSupportedSetpoint(pod sensibo.Pod, value map[string]string) int {
 		}
 	}
 	return temperature
+}
+
+// func getSupportedTempRange(pod sensibo.Pod, value map[string]string) []int {
+func getSupportedTempRangeV1(pod sensibo.PodV1, value map[string]string) []int {
+	mode := value["type"]
+	var tempRange []int
+	for acMode, acValue := range pod.RemoteCapabilities.Modes {
+		if acMode == mode {
+			if acMapValue, ok := acValue.(map[string]interface{}); ok {
+				for funcKey, funcValue := range acMapValue {
+					if funcKey == "temperatures" {
+						if temperatures, ok := funcValue.(map[string]interface{}); ok {
+							for degKey, degValue := range temperatures {
+								if degKey == "celsius" {
+									if tempValue := degValue.([]interface{}); ok {
+										for _, v := range tempValue {
+											tempRange = append(tempRange, int(math.Round(v.(float64))))
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return tempRange
 }
 
 func getSupportedTempRange(pod sensibo.Pod, value map[string]string) []int {

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/futurehomeno/fimpgo/edgeapp"
@@ -71,49 +72,94 @@ func (fc *FimpSensiboHandler) Start(pollTimeSec int) error {
 	go func() {
 		for range fc.ticker.C {
 			// Check if app is connected
-			// ADD timer from config
 			if fc.state.Connected {
-				for i, pod := range fc.state.Pods {
+				log.Debug("")
+				log.Debug("------------------TICKER START-------------------")
+
+				pods, err := fc.api.GetPodsV1(fc.api.Key) // Update on  all ticks
+				log.Debug("oldtemp after getpods: ", fc.state.Pods[0].OldTemp)
+				if err != nil {
+					log.Error("Can't get pods in tick")
+				}
+
+				oldPods := fc.state.Pods
+				fc.state.Pods = pods
+
+				for i, p := range fc.state.Pods {
+					pod := p
+					log.Debug("")
+					log.Debug("pod.ID: ", pod.ID)
+
+					if pod.MainMeasurementSensor.IsMainSensor {
+						log.Debug("Sensor: external")
+						temp := pod.MainMeasurementSensor.Measurements.Temperature
+						humid := pod.MainMeasurementSensor.Measurements.Humidity
+						motion := pod.MainMeasurementSensor.Measurements.Motion
+
+						if oldPods[i].ExtOldTemp != temp {
+							log.Debug("ext sensor temperature: ", temp)
+							log.Debug("extoldTemp, ", oldPods[i].ExtOldTemp)
+							fc.sendTemperatureMsg(pod.ID, temp, nil, 1)
+						}
+						fc.state.Pods[i].ExtOldTemp = temp
+
+						if oldPods[i].ExtOldHumid != float64(humid) {
+							log.Debug("ext sensor humidity: ", humid)
+							log.Debug("extoldHumid, ", oldPods[i].ExtOldHumid)
+							fc.sendHumidityMsg(pod.ID, float64(humid), nil, 1)
+						}
+						fc.state.Pods[i].ExtOldHumid = float64(humid)
+
+						if oldPods[i].ExtOldMotion != motion {
+							log.Debug("ext sensor motion: ", motion)
+							log.Debug("extoldMotion, ", oldPods[i].ExtOldMotion)
+							fc.SendMotionMsg(pod.ID, motion, nil)
+						}
+						fc.state.Pods[i].ExtOldMotion = motion
+
+					}
+					log.Debug("Sensor: internal")
+
 					measurements, err := fc.api.GetMeasurements(pod.ID, fc.api.Key)
 					if err != nil {
-						log.Error("Cannot get measurements from device")
-						break
+						log.Error("Cannot get measurements from internal device")
+						continue
 					}
 					temp := measurements[0].Temperature
-					log.Debug("temp, ", temp)
-					log.Debug("oldTemp, ", fc.state.Pods[i].OldTemp)
-					if fc.state.Pods[i].OldTemp != temp {
+					if oldPods[i].OldTemp != temp {
+						log.Debug("temp, ", temp)
+						log.Debug("oldTemp, ", oldPods[i].OldTemp)
+						fc.sendTemperatureMsg(pod.ID, temp, nil, 0)
+					}
+					fc.state.Pods[i].OldTemp = temp
 
-						fc.sendTemperatureMsg(pod.ID, temp, nil)
-						log.Info("New temp msg sent")
-						fc.state.Pods[i].OldTemp = temp
-					}
 					humid := measurements[0].Humidity
-					log.Debug("humid, ", humid)
-					log.Debug("oldHumid, ", fc.state.Pods[i].OldHumid)
-					if fc.state.Pods[i].OldHumid != humid {
-						fc.sendHumidityMsg(pod.ID, humid, nil)
-						log.Info("New humid msg sent")
-						fc.state.Pods[i].OldHumid = humid
+					if oldPods[i].OldHumid != humid {
+						log.Debug("humid, ", humid)
+						log.Debug("oldHumid, ", oldPods[i].OldHumid)
+						fc.sendHumidityMsg(pod.ID, humid, nil, 0)
 					}
+					fc.state.Pods[i].OldHumid = humid
 
 					states, err := fc.api.GetAcStates(pod.ID, fc.api.Key)
 					if err != nil {
 						log.Error("Faild to get current acState: ", err)
-						break
+						continue
 					}
-					state := states[0].AcState
-					log.Debug("state, ", state)
-					log.Debug("oldState, ", fc.state.Pods[i].OldState)
-					if pod.OldState != state {
-						fc.sendAcState(pod.ID, state, nil)
-						log.Info("New AcState msg sent")
+
+					if len(states) > 0 {
+						state := states[0].AcState
+						if oldPods[i].OldState != state {
+							log.Debug("state, ", state)
+							log.Debug("oldState, ", oldPods[i].OldState)
+							fc.sendAcState(pod.ID, state, nil, 0)
+						}
 						fc.state.Pods[i].OldState = state
+					} else {
+						log.Error("GetAcStates return empty results.")
 					}
 				}
-				// Get measurements and acState from all units
 			} else {
-
 				log.Debug("------- NOT CONNECTED -------")
 				// Do nothing
 			}
@@ -305,22 +351,53 @@ func (fc *FimpSensiboHandler) routeFimpMessage(newMsg *fimpgo.Message) {
 			break
 		}
 		log.Debug("Getting measurements")
-		address := newMsg.Addr.ServiceAddress
+		address := strings.Replace(newMsg.Addr.ServiceAddress, "_0", "", 1)
+		address = strings.Replace(address, "_1", "", 1)
+
+		// address := newMsg.Addr.ServiceAddress
 		measurements, err := fc.api.GetMeasurements(address, fc.api.Key)
 		if err != nil {
 			log.Error("Cannot get measurements from device")
 			break
 		}
+		fc.state.Pods, err = fc.api.GetPodsV1(fc.api.Key)
+		if err != nil {
+			log.Error("Cannot get pods")
+			break
+		}
+		var podNr int
+		for i, p := range fc.state.Pods {
+			pod := p
+			if pod.ID == address {
+				podNr = i
+			}
+		}
+
 		switch newMsg.Payload.Service {
 		case "sensor_temp":
 			log.Debug("Getting temperature")
 			temp := measurements[0].Temperature
-			fc.sendTemperatureMsg(address, temp, newMsg.Payload)
+			fc.sendTemperatureMsg(address, temp, newMsg.Payload, 0)
+			if fc.state.Pods[podNr].MainMeasurementSensor.UID != "" {
+				extTemp := fc.state.Pods[podNr].MainMeasurementSensor.Measurements.Temperature
+				fc.sendTemperatureMsg(address, extTemp, newMsg.Payload, 1)
+			}
+
 		case "sensor_humid":
 			log.Debug("Getting humidity")
 			humid := measurements[0].Humidity
-			fc.sendHumidityMsg(address, humid, newMsg.Payload)
+			fc.sendHumidityMsg(address, humid, newMsg.Payload, 0)
+			if fc.state.Pods[podNr].MainMeasurementSensor.UID != "" {
+				extHumid := fc.state.Pods[podNr].MainMeasurementSensor.Measurements.Humidity
+				fc.sendHumidityMsg(address, float64(extHumid), newMsg.Payload, 1)
+			}
+
+		case "sensor_presence":
+			log.Debug("Getting presence")
+			extMotion := fc.state.Pods[podNr].MainMeasurementSensor.Measurements.Motion
+			fc.SendMotionMsg(address, extMotion, newMsg.Payload)
 		}
+
 	case "cmd.thing.delete":
 		// remove device from network
 		val, err := newMsg.Payload.GetStrMapValue()

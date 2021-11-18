@@ -16,14 +16,15 @@ import (
 
 type State struct {
 	path         string
-	WorkDir      string        `json:"-"`
-	ConfiguredAt string        `json:"configured_at"`
-	ConfiguredBy string        `json:"configured_by"`
-	Connected    bool          `json:"connected"`
-	APIkey       string        `json:"access_token"`
-	Pods         []sensibo.Pod `json:"pods"`
-	FanMode      string        `json:"fan_ctrl"`
-	Mode         string        `json:"mode"`
+	WorkDir      string `json:"-"`
+	ConfiguredAt string `json:"configured_at"`
+	ConfiguredBy string `json:"configured_by"`
+	Connected    bool   `json:"connected"`
+	APIkey       string `json:"access_token"`
+	// Pods         []sensibo.Pod `json:"pods"`
+	Pods    []sensibo.PodV1 `json:"pods"`
+	FanMode string          `json:"fan_ctrl"`
+	Mode    string          `json:"mode"`
 }
 
 func NewStates(workDir string) *State {

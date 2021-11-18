@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"strings"
+
 	"github.com/futurehomeno/fimpgo"
 	log "github.com/sirupsen/logrus"
 	sensibo "github.com/tskaard/sensibo/sensibo-api"
@@ -11,14 +13,30 @@ func (fc *FimpSensiboHandler) setpointGetReport(oldMsg *fimpgo.Message) {
 		log.Error("cmd.setpoint.get_report - Wrong service")
 		return
 	}
-	address := oldMsg.Addr.ServiceAddress
+	address := strings.Replace(oldMsg.Addr.ServiceAddress, "_0", "", 1)
+	address = strings.Replace(address, "_1", "", 1)
 	states, err := fc.api.GetAcStates(address, fc.api.Key)
 	if err != nil {
 		log.Error("Faild to get current acState: ", err)
 		return
 	}
+	if len(states) < 1 {
+		log.Error("States is empty.")
+		return
+	}
+
 	state := states[0].AcState
-	fc.sendSetpointMsg(address, state, oldMsg.Payload)
+	var devicetype string
+	for _, pod := range fc.state.Pods {
+		if pod.ID == address {
+			devicetype = "air"
+		}
+	}
+	if devicetype == "air" {
+		fc.sendSetpointMsg(address, state, oldMsg.Payload, 0)
+	} else {
+		fc.sendSetpointMsg(address, state, oldMsg.Payload, -1)
+	}
 }
 
 func (fc *FimpSensiboHandler) setpointSet(oldMsg *fimpgo.Message) {
@@ -26,13 +44,15 @@ func (fc *FimpSensiboHandler) setpointSet(oldMsg *fimpgo.Message) {
 		log.Error("cmd.setpoint.set - Wrong service")
 		return
 	}
-	address := oldMsg.Addr.ServiceAddress
+	address := strings.Replace(oldMsg.Addr.ServiceAddress, "_0", "", 1)
+	address = strings.Replace(address, "_1", "", 1)
 	value, err := oldMsg.Payload.GetStrMapValue()
 	if err != nil {
 		log.Error("Could not get map of strings from thermostat setpoint set message", err)
 		return
 	}
-	var pod sensibo.Pod
+	// var pod sensibo.Pod
+	var pod sensibo.PodV1
 	for _, p := range fc.state.Pods {
 		if p.ID == address {
 			pod = p
@@ -41,10 +61,6 @@ func (fc *FimpSensiboHandler) setpointSet(oldMsg *fimpgo.Message) {
 	}
 	if pod.ID == "" {
 		log.Error("Address of pod is not stored in state")
-		return
-	}
-	if !checkSupportedSetpointMode(pod, value["type"]) {
-		log.Error("Setpoint mode is not supported")
 		return
 	}
 	setpointMode := value["type"]
@@ -69,5 +85,14 @@ func (fc *FimpSensiboHandler) setpointSet(oldMsg *fimpgo.Message) {
 		return
 	}
 	log.Debug(acStateLog)
-	fc.sendSetpointMsg(pod.ID, newAcState, oldMsg.Payload)
+	var devicetype string
+	if pod.MainMeasurementSensor.UID != "" {
+		devicetype = "air"
+	}
+
+	if devicetype == "air" {
+		fc.sendSetpointMsg(pod.ID, newAcState, oldMsg.Payload, 0)
+	} else {
+		fc.sendSetpointMsg(pod.ID, newAcState, oldMsg.Payload, -1)
+	}
 }
